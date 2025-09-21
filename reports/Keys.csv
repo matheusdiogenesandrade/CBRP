@@ -1,0 +1,17 @@
+Algorithm,Profits,ComponentsSelection,Components
+BRKGA,random,random,multiple
+BRKGA,random,random,single
+BRKGA,random,sparse,multiple
+BRKGA,random,sparse,single
+BRKGA,unitary,random,multiple
+BRKGA,unitary,random,single
+BRKGA,unitary,sparse,multiple
+BRKGA,unitary,sparse,single
+IP,random,random,multiple
+IP,random,random,single
+IP,random,sparse,multiple
+IP,random,sparse,single
+IP,unitary,random,multiple
+IP,unitary,random,single
+IP,unitary,sparse,multiple
+IP,unitary,sparse,single

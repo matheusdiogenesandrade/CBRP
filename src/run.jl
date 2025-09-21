@@ -25,6 +25,9 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--unitary-profits"
         help = "true if you want to consider the blocks' profits as 1, and false otherwise"
         action = :store_true
+        "--sol-stats"
+        help = "true if you want to generate solution stats from an input solution, and false otherwise"
+        action = :store_true
         "--ip"
         help = "true if you want to run the I.P. model, and false otherwise"
         action = :store_true
@@ -71,7 +74,7 @@ end
 # log function 
 function log(app::Dict{String, Any}, info::Dict{String, String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime" , "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "lazyCuts", "cost", "solverTime", "relativeGAP", "nodeCount", "integerCount", "meters", "tourMinutes", "blocksMeters", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime" , "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "lazyCuts", "cost", "solverTime", "relativeGAP", "nodeCount", "integerCount", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty = false))
     info["instance"] = first(split(info["instance"], "."; keepempty = false))
@@ -101,20 +104,22 @@ Get solution for original graph
 =# 
 function retrieveOriginalDigraphSolution(
         tour::Vi,
-        A::Arcs,
-        paths::Dict{Arc, Vi}
+        paths::Dict{Arc, Vi},
+	distances::Dict{Arc, Float64}
     )::Vi
 
-    # optimization
-    A_set::ArcsSet = ArcsSet(A)
-
     # original route
-    ori_tour::Vi = vcat(
-         map(
-             (i, j)::Arc -> (i, j) in A_set ? vcat(i, paths[(i, j)]) : [], 
-             zip(tour[begin:end - 1], tour[2:end])
-            )
-        )
+    ori_tour::Vi = Vi()  # start
+    total_distance::Float64 = 0.0
+    for i in 1:length(tour)-1
+	j = i + 1
+	arc::Arc = Arc(tour[i], tour[j])
+	path::Vi = paths[arc]
+#	append!(ori_tour, path[1:end-1])  # avoid duplication of nodes
+	append!(ori_tour, tour[i]) 
+	append!(ori_tour, path) 
+    end
+
     push!(ori_tour, tour[end]) 
 
     # return
@@ -154,7 +159,7 @@ Run complete digraph IP formulation for the SBRP
         - app::Dict{String, Any} is the command line arguments relation
         - data::SBRPData is the SBRP instance built on a complete digraph
 =# 
-function completeDigraphIPModel(app::Dict{String, Any}, data::SBRPData)
+function completeDigraphIPModel(app::Dict{String, Any}, data::SBRPData, paths::Dict{Arc, Vi}, distances::Dict{Arc, Float64})
 
     @info "###################SBRP####################"
 
@@ -188,7 +193,9 @@ function completeDigraphIPModel(app::Dict{String, Any}, data::SBRPData)
     solution_dir::Union{String, Nothing} = app["out"]
 
     if solution_dir != nothing
-        writeSolution(solution_dir * "_cop_ip_model", data, solution)
+	    solution.tour = retrieveOriginalDigraphSolution(solution.tour[2:end - 1], paths, distances)
+
+	    writeSolution(solution_dir * "_cop_ip_model", data, solution)
     end
 
     @info "########################################################"
@@ -232,6 +239,94 @@ function BRKGAModel(app::Dict{String, Any}, data::SBRPData)
     @info "########################################################"
 end
 
+#=
+Calculate the number of times a tour crosses between different communities.
+=#
+function calculate_inter_community_crossings(tour::Vi, communities::Dict{Int, Int})::Int
+    crossings = 0
+    if length(tour) > 1
+        for i in 1:(length(tour) - 1)
+            u, v = tour[i], tour[i+1]
+            if communities[u] != communities[v]
+                crossings += 1
+            end
+        end
+    end
+    return crossings
+end
+
+#=
+Fill solution statistics
+input: 
+    - app::Dict{String, Any} is the command line arguments relation
+    - data::SBRPData is the SBRP instance built on a complete digraph
+    - solution::SBRPSolution is the solution to be filled
+    - paths::Dict{Arc, Vi} is the relation of paths, from the original digraph, between two nodes belonging to the blocks
+    - distances::Dict{Arc, Float64} is the distance between two nodes in the original digraph
+=# 
+function fillSolutionStats(app::Dict{String, Any}, data::SBRPData, paths::Union{Dict{Arc, Vi}, Nothing}, distances::Union{Dict{Arc, Float64}, Nothing})
+
+    @info "###################Solution-Statistics####################"
+
+    # check paths
+    if paths == nothing
+	error("You must provide the paths when using the --sol-stats option")
+    end
+
+    # check distances
+    if distances == nothing
+	error("You must provide the distances when using the --sol-stats option")
+    end
+
+    # read solution
+    solution_dir::Union{String, Nothing} = app["out"]
+
+    # check
+    if solution_dir == nothing
+	error("You must provide a solution file path using the --out option")
+    end
+
+    # info
+    info::Dict{String, String} = Dict{String, String}()
+
+    # read
+    solution::SBRPSolution = readSBRPSolution(data, solution_dir, distances)
+
+    # log
+    info["model"]        = "SOL-STATS"
+    info["|V|"]          = string(length(data.D.V))
+    info["|A|"]          = string(length(data.D.A))
+    info["|B|"]          = string(length(data.B))
+    info["T"]            = string(data.T)
+
+    info["cost"]         = string(sum(block::Vi -> data.profits[block], solution.B; init=0.0))
+
+
+    info["totalBlocksNodes"] = string(sum(block::Vi -> length(block), solution.B; init=0.0))
+
+    info["meters"]       = string(tourDistance(distances, solution.tour))
+    info["blocksMeters"] = string(sum(map(block::Vi -> blockDistance(data, distances, block), solution.B); init=0.0))
+
+    info["blocksMinutes"] = string(sum(block::Vi -> blockTime(data, distances, block), solution.B; init=0.0))
+    info["tourMinutes"]  = string(tourTime(data, distances, solution) - sum(block::Vi -> blockTime(data, distances, block), solution.B; init=0.0))
+
+    info["numVisitedBlocks"] = string(length(solution.B))
+
+    #
+    info["numVisitedNodes"] = string(count_nodes_in_serviced_blocks(solution.tour, solution.B))
+    info["numOriginalVisitedNodes"] = string(length(solution.tour))
+
+    #
+    info["numRepeatedNodes"] = string(getNumRepeatedNodes(solution.tour))
+    info["numRepeatedArcs"]  = string(getNumRepeatedArcs(solution.tour))
+#    info["avgDetourIndex"] = string(calculate_average_detour_index(solution.tour, solution, data.D.distance))
+
+    #
+    log(app, info) 
+
+    @info "########################################################"
+end
+
 function run(app::Dict{String,Any})
     @info "Application parameters:"
 
@@ -241,9 +336,11 @@ function run(app::Dict{String,Any})
 
     # read instance
     data::Union{SBRPData, Nothing} = nothing
+    paths::Union{Dict{Arc, Vi}, Nothing} = nothing
+    distances::Union{Dict{Arc, Float64}, Nothing} = nothing
 
     if app["instance-type"] == "matheus"
-        data = readSBRPData(app)
+        data, paths, distances = readSBRPData(app)
     elseif app["instance-type"] == "carlos"
         data = readSBRPDataCarlos(app)
     else
@@ -271,9 +368,13 @@ function run(app::Dict{String,Any})
 
         log(app, info)
     elseif app["ip"]
-        completeDigraphIPModel(app, data)
+	    completeDigraphIPModel(app, data, paths, distances)
     elseif app["brkga"] 
         BRKGAModel(app, data)
+    elseif app["sol-stats"]
+	fillSolutionStats(app, data, paths, distances)
+    else
+	error("You must choose at least one of the following options: --ip, --brkga or --sol-stats")
     end
 end
 
@@ -287,8 +388,13 @@ function main(args)
     if app["batch"] != nothing 
         for line in readlines(app["batch"]) 
             if !isempty(strip(line)) && strip(line)[1] != '#'
-
-                run(parse_commandline(map(s::Any -> String(s), split(line)), appfolder))
+#		    try
+			    run(parse_commandline(map(s::Any -> String(s), split(line)), appfolder))
+#		    catch e
+#			    @error "Error processing line: $line"
+#			    @error "$e"
+#			    @error "$(catch_backtrace())"
+#		    end
                 GC.gc()  # Force the GC to run
 
             end

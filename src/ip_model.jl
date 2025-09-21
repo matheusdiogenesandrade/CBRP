@@ -352,7 +352,8 @@ function runCOPCompleteDigraphIPModel(
     model::Model = direct_model(CPLEX.Optimizer())
     #        set_silent(model)
 
-    set_parameters(model, "CPX_PARAM_TILIM" => 3600)
+#    set_parameters(model, "CPX_PARAM_TILIM" => 3600)
+	set_time_limit_sec(model, 3600)
 
     @variable(model, x[a::Arc in A], Bin)
     @variable(model, y[b::Vi in B],  Bin)

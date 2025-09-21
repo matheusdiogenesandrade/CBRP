@@ -25,14 +25,94 @@ const distance(data::SBRPData, (i, j)::Arc)::Float64 = i == j ? 0.0 : data.D.dis
 # block distance in meters
 const blockDistance(data::SBRPData, block::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(block[begin:end - 1], block[begin + 1:end])))) + data.D.distance[Arc(last(block), first(block))]
 
+const blockDistance(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 = sum(a::Arc -> distances[a], Arcs(collect(zip(block[begin:end - 1], block[begin + 1:end])))) + distances[Arc(last(block), first(block))]
+
 # block service time made in 10 km/h
 const blockTime(data::SBRPData, block::Vi)::Float64 = 4 * blockDistance(data, block) / NORMAL_SPEED 
 
+const blockTime(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 = 4 * blockDistance(data, distances, block) / NORMAL_SPEED 
+
 # distance of a tour
-const tourDistance(data::SBRPData, tour::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(tour[begin:end - 1], tour[begin + 1:end]))))
+const tourDistance(data::SBRPData, tour::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(tour[begin:end - 1], tour[begin + 1:end]))); init=0.0)
+
+const tourDistance(distances::ArcCostMap, tour::Vi)::Float64 = sum(a::Arc -> distances[a], Arcs(collect(zip(tour[begin:end - 1], tour[begin + 1:end]))); init=0.0)
 
 # tour time considering the time to spraying all the blocks
-const tourTime(data::SBRPData, solution::SBRPSolution)::Float64 = ((tourDistance(data, solution.tour) - sum(block::Vi -> blockDistance(data, block), solution.B)) / NORMAL_SPEED) + sum(block::Vi -> blockTime(data, block), solution.B)
+const tourTime(data::SBRPData, solution::SBRPSolution)::Float64 = (tourDistance(data, solution.tour) / NORMAL_SPEED) + sum(block::Vi -> blockTime(data, block), solution.B; init=0.0)
+
+const tourTime(data::SBRPData, distances::ArcCostMap, solution::SBRPSolution)::Float64 = (tourDistance(distances, solution.tour) / NORMAL_SPEED) + sum(block::Vi -> blockTime(data, distances, block), solution.B; init=0.0)
+
+#=
+Get the number of nodes that appear more than once in a tour
+input:
+- tour::Vi is the tour
+output:
+- Number of repeated nodes
+=#
+function getNumRepeatedNodes(tour::Vi)::Int
+    counts = Dict{Int, Int}()
+    for node in tour
+        counts[node] = get(counts, node, 0) + 1
+    end
+    
+    repeated_nodes = 0
+    for count in values(counts)
+        if count > 1
+            repeated_nodes += 1
+        end
+    end
+    
+    return repeated_nodes
+end
+
+#=
+Get the number of arcs that appear more than once in a tour
+input:
+- tour::Vi is the tour
+output:
+- Number of repeated arcs
+=#
+function getNumRepeatedArcs(tour::Vi)::Int
+    arc_counts = Dict{Arc, Int}()
+    for i in 1:(length(tour) - 1)
+        arc = Arc(tour[i], tour[i+1])
+        arc_counts[arc] = get(arc_counts, arc, 0) + 1
+    end
+    
+    repeated_arcs = 0
+    for count in values(arc_counts)
+        if count > 1
+            repeated_arcs += 1
+        end
+    end
+    
+    return repeated_arcs
+end
+
+#=
+Count the occurrences of nodes in a tour that belong to a given set of blocks.
+input:
+- tour::Vi is the tour.
+- serviced_blocks::VVi is the list of blocks.
+output:
+- The total count of nodes in the tour that are part of the serviced blocks.
+=#
+function count_nodes_in_serviced_blocks(tour::Vi, serviced_blocks::VVi)::Int
+    if isempty(serviced_blocks) || isempty(tour)
+        return 0
+    end
+    
+    serviced_block_nodes = Set(node for block in serviced_blocks for node in block)
+    
+    count = 0
+    for node in tour
+        if node in serviced_block_nodes
+            count += 1
+        end
+    end
+    return count
+end
+
 
 # get nodes belonging to some block
 const getBlocksNodes(data::SBRPData)::Si = Si(reduce(vcat, data.B))
@@ -369,9 +449,11 @@ Create a SBRP instance from a Matheus's instance
 input:
 - app::Dict{String, Any} is the paramenters relation
 output:
-- data::SBRPData is the SBRP instance
+- data´::SBRPData is the SBRP instance
+- paths´::Dict{Arc, Vi} is the relation of paths
+- distances::ArcCostMap is the original arc distances relationship
 =#
-function readSBRPData(app::Dict{String, Any})::SBRPData
+function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, ArcCostMap}
 
     @debug "Reading Matheus's instance"
 
@@ -446,7 +528,7 @@ function readSBRPData(app::Dict{String, Any})::SBRPData
 
     # update arcs ids
     data.D.A = collect(keys(data.D.distance))
-
+	
     # dummy weights
     addDummyArcs(data)
 
@@ -488,10 +570,11 @@ function readSBRPData(app::Dict{String, Any})::SBRPData
     checkArcsFeasibility(data, data‴)
 
     # set
+    distance = deepcopy(data.D.distance)
     data = data‴
 
     # return
-    return data′
+    return data′, paths′, distance
 end
 
 #=
