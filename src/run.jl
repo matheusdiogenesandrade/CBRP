@@ -40,6 +40,9 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--vehicle-time-limit"
         help = "Vehicle time limit in minutes"
         default = "120"
+        "--time-limit"
+        help = "Seconds budget for Path-CBRP CPLEX solve (0 → 3600). Other IP modes unchanged."
+        default = "0"
         "--instance-type"
         help = "Instance type (matheus|carlos)"
         default = "matheus"
@@ -66,6 +69,12 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--w-integer"
         help = "Fix the variable w, for the complete model, when running the separation algorithm"
         action = :store_true
+        "--no-cbrp-metric-closure"
+        help = "Carlos: skip Floyd–Warshall metric closure; keep sparse street digraph (pair with Path-CBRP IP)"
+        action = :store_true
+        "--path-cbrp-mip"
+        help = "Carlos + IP: arc-indexed Path-CBRP MILP (requires --no-cbrp-metric-closure)"
+        action = :store_true
     end
 
     return parse_args(args_array, s)
@@ -74,7 +83,7 @@ end
 # log function 
 function log(app::Dict{String, Any}, info::Dict{String, String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime" , "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "lazyCuts", "cost", "solverTime", "relativeGAP", "nodeCount", "integerCount", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime" , "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "lazyCuts", "cost", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty = false))
     info["instance"] = first(split(info["instance"], "."; keepempty = false))
@@ -196,6 +205,43 @@ function completeDigraphIPModel(app::Dict{String, Any}, data::SBRPData, paths::D
 	    solution.tour = retrieveOriginalDigraphSolution(solution.tour[2:end - 1], paths, distances)
 
 	    writeSolution(solution_dir * "_cop_ip_model", data, solution)
+    end
+
+    @info "########################################################"
+end
+
+#=
+Path-CBRP IP (Carlos sparse digraph): arc-indexed MILP, no complete-graph MTZ.
+=#
+function pathCbrpIPModel(app::Dict{String, Any}, data::SBRPData)
+
+    @info "###################Path-CBRP (Carlos sparse)####################"
+
+    solution::SBRPSolution, info_::Dict{String, String} = runPathCbrpMipModel(data, app)
+    info::Dict{String, String} = Dict{String, String}()
+    merge!(info, info_)
+
+    try
+        checkSBRPSolution(data, solution)
+    catch e
+        @warn "Path-CBRP solution failed SBRP arc/block checks (subtours possible without SEC): $(sprint(showerror, e))"
+    end
+
+    info["model"] = "PathCBRPIP"
+    info["|V|"] = string(length(data.D.V))
+    info["|A|"] = string(length(data.D.A))
+    info["|B|"] = string(length(data.B))
+    info["T"] = string(data.T)
+    info["meters"] = string(tourDistance(data, solution.tour))
+    info["tourMinutes"] = string(tourTime(data, solution))
+    info["blocksMeters"] = string(sum(map(block::Vi -> blockDistance(data, block), solution.B); init = 0.0))
+    info["numVisitedBlocks"] = string(length(solution.B))
+
+    log(app, info)
+
+    solution_dir::Union{String, Nothing} = app["out"]
+    if solution_dir != nothing
+        writeSolution(solution_dir * "_cop_ip_model", data, solution)
     end
 
     @info "########################################################"
@@ -334,6 +380,13 @@ function run(app::Dict{String,Any})
         @info "  $arg  =>  $(repr(val))"
     end
 
+    if app["path-cbrp-mip"]
+        app["instance-type"] == "carlos" || error("--path-cbrp-mip requires --instance-type carlos")
+        app["ip"] || error("--path-cbrp-mip requires --ip")
+        app["no-cbrp-metric-closure"] || error("--path-cbrp-mip requires --no-cbrp-metric-closure")
+        app["brkga"] && error("--path-cbrp-mip cannot be combined with --brkga")
+    end
+
     # read instance
     data::Union{SBRPData, Nothing} = nothing
     paths::Union{Dict{Arc, Vi}, Nothing} = nothing
@@ -368,7 +421,11 @@ function run(app::Dict{String,Any})
 
         log(app, info)
     elseif app["ip"]
-	    completeDigraphIPModel(app, data, paths, distances)
+        if app["path-cbrp-mip"]
+            pathCbrpIPModel(app, data)
+        else
+            completeDigraphIPModel(app, data, paths, distances)
+        end
     elseif app["brkga"] 
         BRKGAModel(app, data)
     elseif app["sol-stats"]

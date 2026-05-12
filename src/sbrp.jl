@@ -283,6 +283,109 @@ function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
 end
 
 #=
+Ordered vertex list for one disease block from its street arcs (mutates `arcs`).
+=#
+function _carlosBlockVerticesFromArcs!(arcs::Arcs)::Vi
+    block::Vi = Vi()
+
+    curr::Int, next::Int = first(arcs)
+
+    push!(block, curr)
+    deleteat!(arcs, 1)
+
+    while true
+        idx = findfirst((i, j)::Pair{Int, Int} -> next == i, arcs)
+        idx == nothing && break
+
+        curr, next = arcs[idx]
+
+        push!(block, curr)
+        deleteat!(arcs, idx)
+    end
+
+    return block
+end
+
+#=
+Shared post-read pipeline for Carlos-format SBRP (reverse arcs, depot, metric closure).
+`data` must already have `D.V`, `D.distance`, `B`, and `profits` from the file (before reverse arcs).
+=#
+function _finalizeCarlosSbrpData(data::SBRPData, app::Dict{String, Any})::SBRPData
+
+    # Undirected streets: add reverse arcs when missing (sparse Path-CBRP / C++ Carlos parity).
+    for a::Arc in collect(keys(data.D.distance))
+        rev_a::Arc = Arc(last(a), first(a))
+        if !haskey(data.D.distance, rev_a)
+            data.D.distance[rev_a] = data.D.distance[a]
+        end
+    end
+
+    # update arcs ids
+    data.D.A = collect(keys(data.D.distance))
+
+    # add dummy depot
+    @debug "Finding dummy depot"
+
+    depot::Int = data.depot = maximum(collect(keys(data.D.V))) + 1
+    data.D.V[depot] = Vertex(depot, -1, -1)
+
+    # dummy weights
+    addDummyArcs(data)
+
+    data.D.A = collect(keys(data.D.distance))
+
+    # check feasibility
+    @debug "Checking instance connectivity"
+
+    Vb::Si = getBlocksNodes(data)
+    distances::ArcCostMap = calculateShortestPaths(data)
+
+    not_connected::Union{Nothing, Arc} = nothing
+    for p in χ(Vb)
+        a_key::Arc = Arc(p.first, p.second)
+        if !haskey(distances, a_key) || distances[a_key] >= ∞ / 2
+            not_connected = a_key
+            break
+        end
+    end
+    if not_connected !== nothing
+        throw(ArgumentError("The SBRP instance it is not connected (first missing pair: $(not_connected))"))
+    end
+
+    if get(app, "no-cbrp-metric-closure", false)
+        @debug "Skipping metric closure (sparse Carlos digraph)"
+        return data
+    end
+
+    # compact in complete graph
+    data′::SBRPData, paths′::Dict{Arc, Vi} = createCompleteDigraph(data)
+
+    # check feasibility
+    checkArcsFeasibility(data, data′)
+
+    # consider only shortest paths arcs
+    # copy
+    data‴ = deepcopy(data)
+    # set arcs
+    data‴.D.A = collect(ArcsSet(vcat(
+                                     [Arc(path[i], path[i + 1]) for (a, path) in paths′ for i in 1:(length(path) - 1)], # min paths arcs
+                                     [Arc(a.first, path[begin]) for (a, path) in paths′ if !∅(path)], # min paths arcs
+                                     [Arc(path[end], a.second) for (a, path) in paths′ if !∅(path)], # min paths arcs
+                                     [a for (a, path) in paths′ if ∅(path)], # min paths arcs (edge case)
+                                     [Arc(b[i], b[i + 1]) for b in data.B for i in 1:(length(b) - 1)], # blocks arcs
+                                     [Arc(b[end], b[begin]) for b in data.B], # blocks arcs
+                                     [Arc(data.depot, i) for i in Vb], # depot arcs
+                                     [Arc(i, data.depot) for i in Vb] # depot arcs
+                                    )))
+    data‴.D.distance = ArcCostMap(map(a::Arc -> a => data.D.distance[a], filter((i, j)::Arc -> i != j, data‴.D.A)))
+
+    # check feasibility
+    checkArcsFeasibility(data, data‴)
+
+    return data‴
+end
+
+#=
 Create a SBRP instance from a Carlo's instance
 input:
 - app::Dict{String, Any} is the paramenters relation
@@ -304,7 +407,6 @@ function readSBRPDataCarlos(app::Dict{String, Any})::SBRPData
                               parse(Float64, app["vehicle-time-limit"]),
                               ArcCostMap()
                              )
-    blocks::Dict{Int, Arcs} = Dict{Int, Arcs}()
 
     open(app["instance"]) do f::IOStream
 
@@ -358,90 +460,18 @@ function readSBRPDataCarlos(app::Dict{String, Any})::SBRPData
         # get blocks
         @debug "Reading blocks"
 
-        function getBlock(arcs::Arcs)::Vi
-            block::Vi = Vi()
-
-            curr::Int, next::Int = first(arcs) 
-
-            push!(block, curr)
-            deleteat!(arcs, 1)
-
-            while true
-                idx = findfirst((i, j)::Pair{Int, Int} -> next == i, arcs)
-                idx == nothing && break
-
-                curr, next = arcs[idx]
-
-                push!(block, curr)
-                deleteat!(arcs, idx)
-            end
-
-            return block
-        end
-
         @debug "Reading blocks profits"
         for (block_id::Int, arcs::Arcs) in block_arcs
 
-            block::Vi = getBlock(arcs)
+            block::Vi = _carlosBlockVerticesFromArcs!(arcs)
             push!(data.B, block)
 
-            data.profits[block] = block_profit[block_id]
+            data.profits[block] = Float64(block_profit[block_id])
         end
 
     end
 
-    # update arcs ids
-    data.D.A = collect(keys(data.D.distance))
-
-    # add dummy depot
-    @debug "Finding dummy depot"
-
-    depot::Int = data.depot = maximum(collect(keys(data.D.V))) + 1
-    data.D.V[depot] = Vertex(depot, -1, -1)
-
-    # dummy weights
-    addDummyArcs(data)
-
-    # check feasibility
-    @debug "Checking instance connectivity"
-
-    Vb::Si = getBlocksNodes(data)
-    distances::ArcCostMap = calculateShortestPaths(data)
-
-    if any((i, j)::Arc -> !in((i, j), keys(distances)), χ(Vb))
-        throw(ArgumentError("The SBRP instance it is not connected"))
-    end
-
-    # compact in complete graph
-    data′::SBRPData, paths′::Dict{Arc, Vi} = createCompleteDigraph(data)
-
-    # check feasibility
-    checkArcsFeasibility(data, data′)
-
-    # consider only shortest paths arcs
-    # copy
-    data‴ = deepcopy(data)
-    # set arcs
-    data‴.D.A = collect(ArcsSet(vcat(
-                                     [(path[i], path[i + 1]) for (a, path) in paths′ for i in 1:(length(path) - 1)], # min paths arcs
-                                     [(a[1], path[begin]) for (a, path) in paths′ if !∅(path)], # min paths arcs
-                                     [(path[end], a[2]) for (a, path) in paths′ if !∅(path)], # min paths arcs
-                                     [a for (a, path) in paths′ if ∅(path)], # min paths arcs (edge case)
-                                     [(b[i], b[i + 1]) for b in data.B for i in 1:(length(b) - 1)], # blocks arcs
-                                     [(b[end], b[begin]) for b in data.B], # blocks arcs
-                                     [(data.depot, i) for i in Vb], # depot arcs
-                                     [(i, data.depot) for i in Vb] # depot arcs
-                                    )))
-    data‴.D.distance = ArcCostMap(map(a::Arc -> a => data.D.distance[a], filter((i, j)::Arc -> i != j, data‴.D.A)))
-
-    # check feasibility
-    checkArcsFeasibility(data, data‴)
-
-    # set
-    data = data‴
-
-    # return
-    return data
+    return _finalizeCarlosSbrpData(data, app)
 end
 
 #=

@@ -7,6 +7,24 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/ILOG/CPLEX_Studio201/opl/bin/x8
 export JULIA_COPY_STACKS=1
 ```
 
+**Carlos sparse digraph + Path-CBRP MILP:** use `--instance-type carlos`, `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
+
+Example:
+
+```sh
+julia --threads=1 --project=. src/run.jl data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt --instance-type carlos --ip --no-cbrp-metric-closure --path-cbrp-mip --out solutions/pcbrp_smoke --time-limit 60
+```
+
+**Tests:** from this directory: `julia --project=. -e 'using Test; include("test/runtests.jl")'` (CPLEX Path-CBRP smoke may skip if CPLEX fails).
+
+**Path-CBRP time-budget sweep (experiment):** repeatedly solves the Path-CBRP MILP on the same Carlos sparse instance while increasing `data.T` (minutes) from `--min-T` by `--time-step` until `num_serviced_blocks >= num_positive_profit_blocks` (blocks with total profit &gt; 0 from the Carlos reader; zero-profit blocks are never chosen in the max-profit MILP), CPLEX throws, or caps `--max-T` (default 400) / `--max-iterations` (default 100) apply. The CSV includes `num_positive_profit_blocks`; success terminal is `all_positive_profit_blocks`. One CSV row per solve (`--out-csv` required). CPLEX per-solve wall cap: `--time-limit` (seconds; `0` → 3600). This script does not use `src/run.jl` or `logs/log`.
+
+```sh
+julia --threads=1 --project=. experiments/path_cbrp_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --out-csv /tmp/path_sweep.csv --min-T 10 --time-step 5 --max-T 400 --max-iterations 100 --time-limit 30
+```
+
 You can get the parameters list by typing: 
 
 ```sh

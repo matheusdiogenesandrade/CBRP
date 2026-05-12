@@ -1,0 +1,598 @@
+[ Info: Application parameters:
+[ Info:   intersection-cuts  =>  false
+[ Info:   batch  =>  nothing
+[ Info:   subcycle-separation  =>  "all"
+[ Info:   no-cbrp-metric-closure  =>  true
+[ Info:   time-limit  =>  "60"
+[ Info:   instance  =>  "data/carlos/notified-alto-santo/notified-alto-santo-1000-2019.txt"
+[ Info:   cluster-size-profits  =>  false
+[ Info:   ip  =>  true
+[ Info:   path-cbrp-mip  =>  true
+[ Info:   brkga  =>  false
+[ Info:   w-integer  =>  false
+[ Info:   unitary-profits  =>  false
+[ Info:   out  =>  "/tmp/pcbrp_smoke"
+[ Info:   instance-type  =>  "carlos"
+[ Info:   sol-stats  =>  false
+[ Info:   y-integer  =>  false
+[ Info:   vehicle-time-limit  =>  "120"
+[ Info:   z-integer  =>  false
+[ Info:   nosolve  =>  false
+[ Info:   brkga-conf  =>  "conf/config.conf"
+┌ Debug: Reading Carlos SBRP instances
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:397
+┌ Debug: Reading nodes
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:416
+┌ Debug: Reading arcs
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:430
+┌ Debug: Reading blocks
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:461
+┌ Debug: Reading blocks profits
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:463
+┌ Debug: Finding dummy depot
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:327
+┌ Debug: Adding dummy arcs
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:123
+┌ Debug: >> For node 56
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 110
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 60
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 6
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 67
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 73
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 164
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 153
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 112
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 90
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 139
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 4
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 86
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 168
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 104
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 52
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 111
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 23
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 41
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 43
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 11
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 68
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 69
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 171
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 82
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 85
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 130
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 39
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 77
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 108
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 66
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 156
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 59
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 2
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 10
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 27
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 26
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 127
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 116
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 79
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 81
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 20
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 141
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 9
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 109
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 107
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 46
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 57
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 152
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 170
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 88
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 129
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 120
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 78
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 133
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 72
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 37
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 1
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 83
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 154
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 22
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 99
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 121
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 14
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 40
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 113
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 165
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 142
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 5
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 55
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 123
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 32
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 136
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 117
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 45
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 151
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 54
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 91
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 62
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 158
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 150
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 122
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 58
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 28
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 173
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 148
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 92
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 36
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 98
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 118
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 162
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 95
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 7
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 25
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 76
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 93
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 34
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 50
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 18
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 167
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 87
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 42
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 140
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 157
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 169
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 16
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 19
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 49
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 44
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 31
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 74
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 106
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 61
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 94
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 128
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 70
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 21
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 38
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 163
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 131
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 101
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 105
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 17
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 53
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 47
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 89
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 80
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 3
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 96
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 51
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 149
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 155
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 143
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 48
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 15
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: >> For node 97
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:127
+┌ Debug: Checking instance connectivity
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:338
+┌ Debug: Building adjacency list
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:656
+┌ Debug: Obtaining shortest paths in parallel
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:706
+┌ Debug: >> Finding paths from node 56
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 110
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 60
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 6
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 67
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 73
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 164
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 153
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 112
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 90
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 139
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 4
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 86
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 168
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 104
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 52
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 111
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 23
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 41
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 43
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 11
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 68
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 69
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 171
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 82
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 85
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 130
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 39
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 77
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 108
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 66
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 156
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 59
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 2
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 10
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 27
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 26
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 127
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 116
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 79
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 81
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 20
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 141
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 9
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 109
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 107
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 46
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 57
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 152
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 170
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 88
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 129
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 120
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 78
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 133
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 72
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 37
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 1
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 83
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 154
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 22
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 99
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 121
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 14
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 40
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 113
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 165
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 142
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 5
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 55
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 123
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 32
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 136
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 117
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 45
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 151
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 54
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 91
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 62
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 158
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 150
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 122
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 58
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 28
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 173
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 148
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 92
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 36
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 98
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 118
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 162
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 95
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 7
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 25
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 76
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 93
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 34
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 50
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 18
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 167
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 87
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 42
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 140
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 157
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 169
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 16
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 19
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 49
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 44
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 31
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 74
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 106
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 61
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 94
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 128
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 70
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 21
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 38
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 163
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 131
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 101
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 105
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 17
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 53
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 47
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 89
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 80
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 3
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 96
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 51
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 149
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 155
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 143
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 48
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 15
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: >> Finding paths from node 97
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:673
+┌ Debug: Skipping metric closure (sparse Carlos digraph)
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sbrp.jl:356
+[ Info: |B| = 73
+[ Info: |V| = 180
+[ Info: |A| = 796
+[ Info: ###################Path-CBRP (Carlos sparse)####################
+┌ Debug: Checking the feasibility of a SBRP solution
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sol.jl:44
+[ Info: instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,zLP,zLPTime,wLP,wLPTime,maxFlowLP,maxFlowCuts,maxFlowCutsTime,cost,solverTime,relativeGAP,nodeCount,phase1Time,meters,tourMinutes,blocksMeters,numVisitedBlocks,intersectionCutsTime,intersectionCuts1,intersectionCuts2
+[ Info: notified-alto-santo-1000-2019,180,796,73,120.0,PathCBRPIP,N/A,N/A,0,N/A,0,N/A,0,N/A,0,0,947.00,1.008018691,0.0,986,0.5454599857330322,6857.55,77.52328500000002,11206.159999999998,27,0,0,0
+┌ Debug: Writing solution in a file
+└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/sol.jl:13
+[ Info: ########################################################

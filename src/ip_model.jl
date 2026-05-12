@@ -3,6 +3,16 @@ using Combinatorics
 
 include("SparseMaxFlowMinCut.jl")
 
+"""CPLEX per-solve cap from `--time-limit` (0 → 3600)."""
+function _ip_base_cplex_seconds(app_time_limit::Float64)::Float64
+    return app_time_limit > 0.0 ? app_time_limit : 3600.0
+end
+
+"""Limit CPLEX global thread count (barrier, parallel MIP, etc.)."""
+function _set_cplex_threads!(model::Model, n::Int = 1)
+    set_optimizer_attribute(model, "CPXPARAM_Threads", n)
+end
+
 #=
 Get intersection cuts
 input: 

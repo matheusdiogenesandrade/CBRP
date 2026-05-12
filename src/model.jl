@@ -26,3 +26,5 @@ function blocks(B::VVi, S::Si)::VVi
 end
 
 include("ip_model.jl")
+include("path_cbrp_interfaces.jl")
+include("path_cbrp_ip.jl")
