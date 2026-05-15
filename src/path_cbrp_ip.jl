@@ -58,7 +58,7 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
     _set_cplex_threads!(model)
     set_time_limit_sec(model, max(1.0, total_budget_sec))
 
-    set_optimizer_attribute(model, "CPXPARAM_Preprocessing_Presolve", 0)
+    #set_optimizer_attribute(model, "CPXPARAM_Preprocessing_Presolve", 0)
 
     @variable(model, x[1:na], Bin)
     @variable(model, y[1:ny], Bin)
