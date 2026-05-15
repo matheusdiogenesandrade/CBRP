@@ -27,4 +27,5 @@ end
 
 include("ip_model.jl")
 include("path_cbrp_interfaces.jl")
+include("brkga_path_warmstart.jl")
 include("path_cbrp_ip.jl")

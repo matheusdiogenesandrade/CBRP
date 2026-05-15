@@ -120,11 +120,18 @@ function dijkstra(data::SBRPData, idxs_blocks::Vi)::Tuple{Float64, Dict{Tuple{In
 
     @debug "Get last block index"
 
-    last_block_idx::Int = idxs_blocks[findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= T, B[idx]), idxs_blocks)]
+    pos_last = findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= T, B[idx]), idxs_blocks)
+    if pos_last === nothing
+        return T + 1.0, consumed_times
+    end
+    last_block_idx::Int = idxs_blocks[pos_last]
 
     @debug "Return"
 
     candidates::Vi = filter(i::Int -> consumed_times[(last_block_idx, i)] <= T, B[last_block_idx])
+    if isempty(candidates)
+        return T + 1.0, consumed_times
+    end
 
     return minimum(map(i::Int -> consumed_times[(last_block_idx, i)], candidates)), consumed_times
 end
@@ -137,10 +144,11 @@ function getDijkstraRoute(data::SBRPData, consumed_times::Dict{Tuple{Int, Int}, 
 
     @debug "Get params"
 
-    m::Int = findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)
-
-    # edge case
-    m == 0 && return tour
+    m_pos = findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)
+    if m_pos === nothing || m_pos == 0
+        return Vi([data.depot])
+    end
+    m::Int = m_pos
 
     tour::Vi       = Vi()
     B::VVi         = data.B
@@ -197,7 +205,9 @@ function getDijkstraRoute(data::SBRPData, consumed_times::Dict{Tuple{Int, Int}, 
                                     i::Int -> consumed_times[(idx_prev_block, i)] + time(data, Arc(i, j)) + curr_block_time <= consumed_times[(idx_curr_block, j)], 
                                     prev_block
                                    )
-            push!(tour, first(candidates))
+            if !isempty(candidates)
+                push!(tour, first(candidates))
+            end
         end
 
     end
@@ -232,14 +242,13 @@ function decode!(chromosome::Array{Float64}, data::SBRPData, rewrite::Bool)::Flo
     idxs_blocks::Vi = getIdxsBlocks(chromosome, data)
     tour_time::Float64, consumed_times::Dict{Tuple{Int, Int}, Float64} = dijkstra(data, idxs_blocks)
 
-    idxs_blocks = idxs_blocks[begin:findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)]
-
-    if tour_time > data.T # check feasibility
-        throw(InvalidStateException("Not here"))
-        return -∞
-    else # return profit
-        return sum(idx::Int -> data.profits[B[idx]], idxs_blocks)
+    last_feasible = findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)
+    if last_feasible === nothing || tour_time > data.T
+        return -Inf
     end
+    idxs_blocks = idxs_blocks[begin:last_feasible]
+
+    return sum(idx::Int -> data.profits[B[idx]], idxs_blocks)
 end
 
 function runCOPBRKGAModel(data::SBRPData, app::Dict{String, Any})::Tuple{SBRPSolution, Dict{String, String}}
@@ -269,6 +278,12 @@ function runCOPBRKGAModel(data::SBRPData, app::Dict{String, Any})::Tuple{SBRPSol
     stop_rule::StopRule                = parseRule(StopRule, retrieve(conf, "stop_rule"))
     stop_argument::Union{Float64, Int} = parse(stop_rule == TARGET ? Float64 : Int64, retrieve(conf, "stop_argument"))
     maximum_time::Float64              = parse(Float64, retrieve(conf, "maximum_time"))
+
+    time_limit_override::Float64 = parse(Float64, get(app, "time-limit", "0"))
+    if time_limit_override > 0.0
+        maximum_time = time_limit_override
+    end
+
     verbose                            = parse(Bool, retrieve(conf, "verbose"))
     perform_evolution::Bool            = parse(Bool, retrieve(conf, "evolution"))
 
@@ -515,15 +530,21 @@ function runCOPBRKGAModel(data::SBRPData, app::Dict{String, Any})::Tuple{SBRPSol
     # get dijkstra time matrix
     tour_time, consumed_times = dijkstra(data, idxs_blocks)
 
-    # get tour
-    tour = getDijkstraRoute(data, consumed_times, idxs_blocks)
+    fl = findlast(idx::Int -> any(i::Int -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)
+    if fl === nothing || tour_time > data.T
+        tour = Vi([data.depot])
+        blocks = VVi()
+    else
+        idxs_feas::Vi = idxs_blocks[begin:fl]
+        tour = getDijkstraRoute(data, consumed_times, idxs_feas)
+        blocks = VVi([B[idx_block] for idx_block in idxs_feas])
+    end
 
-    println("Last index ", findlast(idx -> any(i -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks))
-    # update blocks indexes
-    idxs_blocks = idxs_blocks[1:findlast(idx -> any(i -> consumed_times[(idx, i)] <= data.T, data.B[idx]), idxs_blocks)]
-
-    # get visited blocks
-    blocks = [B[idx_block] for idx_block in idxs_blocks]
+    if fl !== nothing
+        println("Last index ", fl)
+    else
+        println("Last index ", nothing, " (no feasible block prefix under decode / budget T)")
+    end
 
     # log
     info["cost"], info["solverTime"] = string(best_cost), string(total_elapsed_time)

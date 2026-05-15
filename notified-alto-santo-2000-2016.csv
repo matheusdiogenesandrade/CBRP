@@ -1,0 +1,6 @@
+iteration,budget_T,num_blocks,num_positive_profit_blocks,num_serviced_blocks,terminal,cost,solverTime,relativeGAP,nodeCount,phase1Time,noFeasibleSolution,error_message
+1,5.0,88,8,2,,40.00,2.128859361,0.0,2514,0.5237529277801514,,
+2,10.0,88,8,3,,76.00,85.995430718,0.0,49940,0.030943870544433594,,
+3,15.0,88,8,5,,102.00,275.182224264,0.0,124716,0.0154571533203125,,
+4,20.0,88,8,7,,122.00,19.336521842,0.0,11307,0.03135800361633301,,
+5,25.0,88,8,8,all_positive_profit_blocks,126.00,0.605202891,0.0,501,0.027966022491455078,,

@@ -21,11 +21,11 @@ function csv_escape(s::AbstractString)::String
     return String(s)
 end
 
-function parse_cli()::Union{Nothing, Dict{String, Any}}
+function parse_cli()::Union{Nothing,Dict{String,Any}}
     s = ArgParseSettings(
-        prog = "path_cbrp_time_sweep.jl",
-        description = "Sweep Path-CBRP MILP over increasing time budget T (Carlos sparse). Stops when num_serviced_blocks >= count of blocks with profit > 0.",
-        exit_after_help = false,
+        prog="path_cbrp_time_sweep.jl",
+        description="Sweep Path-CBRP MILP over increasing time budget T (Carlos sparse). Stops when num_serviced_blocks >= count of blocks with profit > 0.",
+        exit_after_help=false,
     )
     @add_arg_table s begin
         "instance"
@@ -59,7 +59,7 @@ function parse_cli()::Union{Nothing, Dict{String, Any}}
     return parse_args(ARGS, s)
 end
 
-function get_info_str(info::Dict{String, String}, key::String)::String
+function get_info_str(info::Dict{String,String}, key::String)::String
     return get(info, key, "")
 end
 
@@ -71,7 +71,7 @@ function write_result_row(
     num_positive_profit_blocks::Int,
     num_serviced::Int,
     terminal::String,
-    info::Dict{String, String},
+    info::Dict{String,String},
     error_message::String,
 )
     cols = String[
@@ -126,12 +126,12 @@ function main()::Cint
         return Cint(2)
     end
 
-    app_read = Dict{String, Any}(
+    app_read = Dict{String,Any}(
         "instance" => instance_path,
         "vehicle-time-limit" => string(min_T),
         "no-cbrp-metric-closure" => true,
     )
-    data::SBRPData = readSBRPDataCarlos(app_read)
+    data::SBRPData = readSBRPDataCarlos(app_read)[1]
 
     num_positive_profit_blocks::Int = count(b -> data.profits[b] > 0, data.B)
     if num_positive_profit_blocks == 0
@@ -139,7 +139,7 @@ function main()::Cint
         return Cint(2)
     end
 
-    solve_app = Dict{String, Any}("time-limit" => time_limit_str)
+    solve_app = Dict{String,Any}("time-limit" => time_limit_str)
 
     io = open(out_csv, "w")
     try
@@ -179,7 +179,7 @@ function main()::Cint
             catch e
                 msg = sprint(showerror, e)
                 println(stderr, "Path-CBRP sweep: solver error at iteration=$iter budget_T=$curr_T: $msg")
-                empty_info = Dict{String, String}()
+                empty_info = Dict{String,String}()
                 write_result_row(
                     io,
                     iter,

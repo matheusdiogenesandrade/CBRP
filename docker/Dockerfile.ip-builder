@@ -1,0 +1,37 @@
+ARG UBUNTU_VERSION=22.04
+FROM ubuntu:${UBUNTU_VERSION}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV JULIA_NUM_THREADS=1
+ENV ARTIFACT_ROOT=/artifacts/cbrp-original-ip
+ENV JULIA_VERSION=1.8.4
+ENV CPLEX_ROOT_DIR=/opt/ibm/ILOG/CPLEX_Studio2211
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    gcc \
+    g++ \
+    make \
+    pkg-config \
+    build-essential \
+    gfortran \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Julia (URL path uses minor version X.Y, not patch X.Y.Z)
+RUN JULIA_MINOR=$(echo ${JULIA_VERSION} | cut -d. -f1,2) \
+    && wget -q https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_MINOR}/julia-${JULIA_VERSION}-linux-x86_64.tar.gz \
+    && tar -xzf julia-${JULIA_VERSION}-linux-x86_64.tar.gz -C /usr/local --strip-components=1 \
+    && rm julia-${JULIA_VERSION}-linux-x86_64.tar.gz \
+    && julia --version
+
+# Create artifact directory
+RUN mkdir -p ${ARTIFACT_ROOT}
+
+WORKDIR /workspace
+
+CMD ["bash"]

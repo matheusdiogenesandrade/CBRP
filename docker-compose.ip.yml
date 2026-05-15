@@ -1,0 +1,37 @@
+# Self-contained Julia + CPLEX IP workflow for this repository.
+# Run from this directory: docker compose -f docker-compose.ip.yml build
+
+services:
+  cbrp-original-ip-builder:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ip-builder
+    image: cbrp-original-ip-builder:latest
+    working_dir: /workspace
+    environment:
+      ARTIFACT_ROOT: /artifacts/cbrp-original-ip
+      BUILD_JULIA: "1"
+      CPLEX_ROOT_DIR: "${CPLEX_ROOT_DIR:-/opt/ibm/ILOG/CPLEX_Studio2211}"
+    volumes:
+      - .:/workspace:ro
+      - ${IP_ARTIFACTS_DIR:-./build/ip-artifacts}:/artifacts
+      - ${CPLEX_HOST_PATH:-/opt/ibm/ILOG/CPLEX_Studio2211}:${CPLEX_ROOT_DIR:-/opt/ibm/ILOG/CPLEX_Studio2211}:ro
+    command: bash -lc "bash /workspace/scripts/stage_ip_artifacts.sh"
+
+  cbrp-original-ip-runner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ip-runner
+    image: cbrp-original-ip-runner:latest
+    working_dir: /artifacts/cbrp-original-ip/CBRP_original
+    environment:
+      ARTIFACT_ROOT: /artifacts/cbrp-original-ip
+      JULIA_DEPOT_PATH: /artifacts/cbrp-original-ip/.julia
+      RUNS_ROOT: /runs
+      JULIA_NUM_THREADS: "1"
+    volumes:
+      - ${IP_ARTIFACTS_DIR:-./build/ip-artifacts}:/artifacts
+      - ./logs/docker-ip:/runs
+    stdin_open: true
+    tty: true
+    command: bash

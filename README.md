@@ -7,6 +7,31 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/ILOG/CPLEX_Studio201/opl/bin/x8
 export JULIA_COPY_STACKS=1
 ```
 
+## Docker IP with CPLEX
+
+Self-contained **builder + runner** for this repo (no dependency on a parent COPAlgorithms tree). From **this directory** (repository root):
+
+```bash
+export CPLEX_HOST_PATH="/path/to/CPLEX_Studio2211"   # host Studio install; optional if already at default path
+docker compose -f docker-compose.ip.yml build
+docker compose -f docker-compose.ip.yml run --rm cbrp-original-ip-builder
+docker compose -f docker-compose.ip.yml run --rm cbrp-original-ip-runner
+```
+
+| Variable | Default | Role |
+|----------|---------|------|
+| `IP_ARTIFACTS_DIR` | `./build/ip-artifacts` | Host folder mounted at `/artifacts` (staging writes `cbrp-original-ip/CBRP_original` and `.julia` here). |
+| `CPLEX_HOST_PATH` | `/opt/ibm/ILOG/CPLEX_Studio2211` | Host CPLEX Studio root for the bind mount. |
+| `CPLEX_ROOT_DIR` | `/opt/ibm/ILOG/CPLEX_Studio2211` | Mount point inside the container (must match `CPLEX_ROOT_DIR` passed to the staging script). |
+
+Images: `cbrp-original-ip-builder:latest`, `cbrp-original-ip-runner:latest`. Dockerfiles: [`docker/Dockerfile.ip-builder`](docker/Dockerfile.ip-builder), [`docker/Dockerfile.ip-runner`](docker/Dockerfile.ip-runner). Staging: [`scripts/stage_ip_artifacts.sh`](scripts/stage_ip_artifacts.sh).
+
+Inside the runner, `WORKDIR` is the staged Julia project. Example solves (same as below):
+
+```bash
+julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solutions/complete_smoke --intersection-cuts --ip
+```
+
 **Carlos sparse digraph + Path-CBRP MILP:** use `--instance-type carlos`, `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
 
 Example:
@@ -14,6 +39,37 @@ Example:
 ```sh
 julia --threads=1 --project=. src/run.jl data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt --instance-type carlos --ip --no-cbrp-metric-closure --path-cbrp-mip --out solutions/pcbrp_smoke --time-limit 60
 ```
+
+**Path-CBRP MIP warm start** (`--path-cbrp-warm-sol PATH`, `--path-cbrp-warm-sol-format`): optional hints before the Path MILP solve. Formats:
+
+| Format | Flag | File |
+|--------|------|------|
+| `brkga-sol` | `--path-cbrp-warm-sol-format brkga-sol` | `writeSolution` output (`PREFIX_brkga.sol`); expanded via metric closure |
+| `path-cbrp-mtz` | `--path-cbrp-warm-sol-format path-cbrp-mtz` | Article reference: `X: i j` arcs, `Y: node block_id` (`y[node][block]=1`) |
+| `auto` (default) | omit or `auto` | Detects `X:` lines → `path-cbrp-mtz`, else `brkga-sol` |
+
+**BRKGA `.sol` (two commands):**
+
+```sh
+julia --threads=1 --project=. src/run.jl INSTANCE.txt --instance-type carlos --brkga --out solutions/my_prefix --vehicle-time-limit 120
+julia --threads=1 --project=. src/run.jl INSTANCE.txt --instance-type carlos --ip --no-cbrp-metric-closure --path-cbrp-mip \
+  --path-cbrp-warm-sol solutions/my_prefix_brkga.sol --path-cbrp-warm-sol-format brkga-sol \
+  --out solutions/pcbrp_warm --vehicle-time-limit 120 --time-limit 3600
+```
+
+**Article `path-cbrp-mtz` reference (one command):**
+
+```sh
+julia --threads=1 --project=. src/run.jl data/carlos/notified-alto-santo/notified-alto-santo-1000-2016.txt \
+  --instance-type carlos --ip --no-cbrp-metric-closure --path-cbrp-mip \
+  --path-cbrp-warm-sol solutions/results-cbrp-article/path-cbrp-mtz/notified-alto-santo-1000-2016.txt \
+  --path-cbrp-warm-sol-format path-cbrp-mtz \
+  --out solutions/pcbrp_warm --vehicle-time-limit 120 --time-limit 3600
+```
+
+Use the **same** `INSTANCE.txt`, `--vehicle-time-limit`, and `--drop-zero-profit-blocks` (if any) as when the warm file was produced. For **`path-cbrp-mtz`**, every `X:` arc must exist on the sparse digraph produced by the Carlos reader (depot dummy arcs included); otherwise warm start is skipped with a warning. Path `--time-limit` caps CPLEX only; BRKGA uses `conf/config.conf` plus its own `--time-limit` on the BRKGA run. Logs include `warmStartUsed` when the warm pipeline succeeds (MIP hints or hard-fix below).
+
+**Julia-only hard-fix warm start:** there is no CLI flag. When calling `runPathCbrpMipModel` from Julia (REPL, script, or tests), set `app["path_cbrp_fix_warm_start"] = true` (or the string `"true"`) so Path-CBRP adds explicit equality constraints `fix_warm_x[k]` and `fix_warm_y[k]` on the binary `x` and `y` variables (instead of MIP starts). CPLEX must then satisfy MTZ, time, and linking at those values—useful to tell apart an inconsistent warm pattern from model issues. Continuous `w` (MTZ potentials) are left free. On success, logs set `warmStartFixed` to `"true"` (otherwise `"false"`).
 
 **Tests:** from this directory: `julia --project=. -e 'using Test; include("test/runtests.jl")'` (CPLEX Path-CBRP smoke may skip if CPLEX fails).
 
@@ -25,7 +81,7 @@ julia --threads=1 --project=. experiments/path_cbrp_time_sweep.jl \
   --out-csv /tmp/path_sweep.csv --min-T 10 --time-step 5 --max-T 400 --max-iterations 100 --time-limit 30
 ```
 
-You can get the parameters list by typing: 
+You can get the parameters list by typing:
 
 ```sh
 julia --threads=auto --project=. src/run.jl

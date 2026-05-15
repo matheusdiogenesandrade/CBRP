@@ -1,0 +1,34 @@
+ARG UBUNTU_VERSION=22.04
+FROM ubuntu:${UBUNTU_VERSION}
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV JULIA_NUM_THREADS=1
+ENV ARTIFACT_ROOT=/artifacts/cbrp-original-ip
+ENV RUNS_ROOT=/runs
+ENV CPLEX_ROOT_DIR=/opt/ibm/ILOG/CPLEX_Studio2211
+
+# Install Julia runtime dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    gcc \
+    g++ \
+    gfortran \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Julia runtime
+RUN wget -q https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.4-linux-x86_64.tar.gz \
+    && tar -xzf julia-1.8.4-linux-x86_64.tar.gz -C /usr/local --strip-components=1 \
+    && rm julia-1.8.4-linux-x86_64.tar.gz \
+    && julia --version
+
+# Create runs directory
+RUN mkdir -p ${RUNS_ROOT}
+
+WORKDIR ${ARTIFACT_ROOT}
+ENV JULIA_DEPOT_PATH=${ARTIFACT_ROOT}/.julia
+
+CMD ["bash"]

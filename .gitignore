@@ -1,1 +1,3 @@
 venv
+build/ip-artifacts/
+logs/docker-ip/

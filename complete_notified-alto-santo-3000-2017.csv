@@ -1,0 +1,4 @@
+iteration,budget_T,num_blocks,num_positive_profit_blocks,num_serviced_blocks,terminal,cost,solverTime,relativeGAP,nodeCount,yLPTime,maxFlowCutsTime,maxFlowCuts,intersectionCutsTime,phase1Time,noFeasibleSolution,error_message
+1,5.0,114,28,2,,208.00,88.736105279,0.0,0,60.288812778,202.103349466,1275,872.818866165,,,
+2,10.0,114,28,3,,364.00,3600.128161527,0.02472527472526778,4111,55.006652443,120.177822998,767,cached,,,
+3,15.0,114,28,5,,472.00,3600.145454847,0.0508474576271098,5751,57.603679118,62.238804631,365,cached,,,

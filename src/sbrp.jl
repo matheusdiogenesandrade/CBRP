@@ -5,16 +5,16 @@ mutable struct SBRPData <: AbstractInstance
     depot::Int
     B::Vector{Vi}
     T::Float64
-    profits::Dict{Vi, Float64}
+    profits::Dict{Vi,Float64}
 end
 
 mutable struct SBRPSolution # SBRP Solution
-   tour::Vi                 # route
-   B::VVi                   # serviced blocks
+    tour::Vi                 # route
+    B::VVi                   # serviced blocks
 end
 
 # 40 km / 60 min = 40 km/h
-const NORMAL_SPEED::Float64 = (40.0 * 1e3)/60.0
+const NORMAL_SPEED::Float64 = (40.0 * 1e3) / 60.0
 
 # arc time in 40 km/h
 const time(data::SBRPData, (i, j)::Arc)::Float64 = i == j ? 0.0 : data.D.distance[Arc(i, j)] / NORMAL_SPEED
@@ -22,20 +22,36 @@ const time(data::SBRPData, (i, j)::Arc)::Float64 = i == j ? 0.0 : data.D.distanc
 # arc distance
 const distance(data::SBRPData, (i, j)::Arc)::Float64 = i == j ? 0.0 : data.D.distance[Arc(i, j)]
 
-# block distance in meters
-const blockDistance(data::SBRPData, block::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(block[begin:end - 1], block[begin + 1:end])))) + data.D.distance[Arc(last(block), first(block))]
+# block distance in meters (length ≤ 1: no perimeter arcs; avoids empty sum and missing closing arc)
+const blockDistance(data::SBRPData, block::Vi)::Float64 =
+    length(block) <= 1 ? 0.0 :
+    (
+        sum(
+            a::Arc -> data.D.distance[a],
+            Arcs(collect(zip(block[begin:end-1], block[begin+1:end])));
+            init=0.0,
+        ) + data.D.distance[Arc(last(block), first(block))]
+    )
 
-const blockDistance(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 = sum(a::Arc -> distances[a], Arcs(collect(zip(block[begin:end - 1], block[begin + 1:end])))) + distances[Arc(last(block), first(block))]
+const blockDistance(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 =
+    length(block) <= 1 ? 0.0 :
+    (
+        sum(
+            a::Arc -> distances[a],
+            Arcs(collect(zip(block[begin:end-1], block[begin+1:end])));
+            init=0.0,
+        ) + distances[Arc(last(block), first(block))]
+    )
 
 # block service time made in 10 km/h
-const blockTime(data::SBRPData, block::Vi)::Float64 = 4 * blockDistance(data, block) / NORMAL_SPEED 
+const blockTime(data::SBRPData, block::Vi)::Float64 = 4 * blockDistance(data, block) / NORMAL_SPEED
 
-const blockTime(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 = 4 * blockDistance(data, distances, block) / NORMAL_SPEED 
+const blockTime(data::SBRPData, distances::ArcCostMap, block::Vi)::Float64 = 4 * blockDistance(data, distances, block) / NORMAL_SPEED
 
 # distance of a tour
-const tourDistance(data::SBRPData, tour::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(tour[begin:end - 1], tour[begin + 1:end]))); init=0.0)
+const tourDistance(data::SBRPData, tour::Vi)::Float64 = sum(a::Arc -> data.D.distance[a], Arcs(collect(zip(tour[begin:end-1], tour[begin+1:end]))); init=0.0)
 
-const tourDistance(distances::ArcCostMap, tour::Vi)::Float64 = sum(a::Arc -> distances[a], Arcs(collect(zip(tour[begin:end - 1], tour[begin + 1:end]))); init=0.0)
+const tourDistance(distances::ArcCostMap, tour::Vi)::Float64 = sum(a::Arc -> distances[a], Arcs(collect(zip(tour[begin:end-1], tour[begin+1:end]))); init=0.0)
 
 # tour time considering the time to spraying all the blocks
 const tourTime(data::SBRPData, solution::SBRPSolution)::Float64 = (tourDistance(data, solution.tour) / NORMAL_SPEED) + sum(block::Vi -> blockTime(data, block), solution.B; init=0.0)
@@ -50,18 +66,18 @@ output:
 - Number of repeated nodes
 =#
 function getNumRepeatedNodes(tour::Vi)::Int
-    counts = Dict{Int, Int}()
+    counts = Dict{Int,Int}()
     for node in tour
         counts[node] = get(counts, node, 0) + 1
     end
-    
+
     repeated_nodes = 0
     for count in values(counts)
         if count > 1
             repeated_nodes += 1
         end
     end
-    
+
     return repeated_nodes
 end
 
@@ -73,19 +89,19 @@ output:
 - Number of repeated arcs
 =#
 function getNumRepeatedArcs(tour::Vi)::Int
-    arc_counts = Dict{Arc, Int}()
-    for i in 1:(length(tour) - 1)
+    arc_counts = Dict{Arc,Int}()
+    for i in 1:(length(tour)-1)
         arc = Arc(tour[i], tour[i+1])
         arc_counts[arc] = get(arc_counts, arc, 0) + 1
     end
-    
+
     repeated_arcs = 0
     for count in values(arc_counts)
         if count > 1
             repeated_arcs += 1
         end
     end
-    
+
     return repeated_arcs
 end
 
@@ -101,9 +117,9 @@ function count_nodes_in_serviced_blocks(tour::Vi, serviced_blocks::VVi)::Int
     if isempty(serviced_blocks) || isempty(tour)
         return 0
     end
-    
+
     serviced_block_nodes = Set(node for block in serviced_blocks for node in block)
-    
+
     count = 0
     for node in tour
         if node in serviced_block_nodes
@@ -117,8 +133,36 @@ end
 # get nodes belonging to some block
 const getBlocksNodes(data::SBRPData)::Si = Si(reduce(vcat, data.B))
 
+#=
+Drop blocks whose profit is exactly zero from `data.B` and `data.profits`.
+Blocks with profit < 0 or > 0 are kept (only `== 0` is removed).
+Vertices that belonged only to removed blocks are no longer in any block and
+therefore disappear from the compact complete digraph when `createCompleteDigraph`
+runs; the street digraph `data.D` is unchanged so shortest-path closure still sees
+all Steiner nodes.
+
+Throws `ArgumentError` if no blocks remain or no block has profit > 0 after filtering.
+=#
+function dropZeroProfitBlocks!(data::SBRPData)::Nothing
+    kept::VVi = VVi()
+    for block::Vi in data.B
+        p::Float64 = data.profits[block]
+        if p == 0.0
+            delete!(data.profits, block)
+        else
+            push!(kept, block)
+        end
+    end
+    empty!(data.B)
+    append!(data.B, kept)
+    if isempty(data.B) || !any(b::Vi -> data.profits[b] > 0, data.B)
+        throw(ArgumentError("dropZeroProfitBlocks!: no blocks with profit > 0 remain after removing zero-profit blocks"))
+    end
+    return nothing
+end
+
 # add dummy arcs connected to the nodes belonging to some block
-function addDummyArcs(data::SBRPData) 
+function addDummyArcs(data::SBRPData)
 
     @debug "Adding dummy arcs"
 
@@ -126,8 +170,70 @@ function addDummyArcs(data::SBRPData)
 
         @debug ">> For node $i"
 
-        data.D.distance[Arc(data.depot, i)] = data.D.distance[Arc(i, data.depot)] = 0.0 
+        data.D.distance[Arc(data.depot, i)] = data.D.distance[Arc(i, data.depot)] = 0.0
     end
+end
+
+#=
+Compute one source row for metric closure: distances and vertex paths from `i` to each
+reachable `j ∈ Vb` on the street digraph. Returns fresh `Dict`s for thread-safe merge.
+=#
+function _completeDigraphRowFromSource(
+    i::Int,
+    data::SBRPData,
+    adjList::Dict{Int,Vi},
+    V::Vi,
+    Vb::Si,
+)::Tuple{Dict{Arc,Float64},Dict{Arc,Vi}}
+
+    distances_local::Dict{Int,Float64} = Dict{Int,Float64}(map(v::Int -> v => typemax(Float64), V))
+    pred::Dict{Int,Int} = Dict{Int,Int}(map(v::Int -> v => v, V))
+    q::Vi = Vi([i])
+
+    distances_local[i] = 0.0
+
+    while !isempty(q)
+
+        curr::Int = popfirst!(q)
+
+        for next::Int in adjList[curr]
+
+            if !in(next, [data.depot, i]) && distances_local[next] > distances_local[curr] + data.D.distance[Arc(curr, next)]
+
+                distances_local[next] = distances_local[curr] + data.D.distance[Arc(curr, next)]
+                pred[next] = curr
+                push!(q, next)
+
+            end
+
+        end
+
+    end
+
+    row_dist::Dict{Arc,Float64} = Dict{Arc,Float64}()
+    row_paths::Dict{Arc,Vi} = Dict{Arc,Vi}()
+
+    for j::Int in Vb
+
+        pred[j] == j && continue
+
+        row_dist[Arc(i, j)] = distances_local[j]
+        path_j::Vi = Vi()
+        curr_j::Int = j
+
+        while pred[curr_j] != curr_j
+
+            pushfirst!(path_j, curr_j)
+            curr_j = pred[curr_j]
+
+        end
+
+        pushfirst!(path_j, i)
+        row_paths[Arc(i, j)] = path_j
+
+    end
+
+    return row_dist, row_paths
 end
 
 #=
@@ -138,7 +244,7 @@ output:
 - data´::SBRPData is the new SBRP instance
 - paths´::Dict{Pair{Int, Int}, Vector{Int}} is the relation of paths
 =#
-function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
+function createCompleteDigraph(data::SBRPData)::Pair{SBRPData,Dict{Arc,Vi}}
 
     @debug "Creating complete digraph"
 
@@ -150,29 +256,29 @@ function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
     depot::Int = data.depot
 
     data′::SBRPData = SBRPData(
-                               InputDigraph(
-                                            Dict{Int, Vertex}(vcat(
-                                                                   depot => data.D.V[depot], 
-                                                                   map(i::Int -> i => data.D.V[i], collect(Vb))
-                                                                  )), 
-                                            Arcs(), 
-                                            ArcCostMap(map(
-                                                           a::Arc -> a => 0.0, 
-                                                           filter((i, j)::Arc -> i != j, χ(Vb))
-                                                          ))
-                                           ), 
-                               depot, 
-                               B, 
-                               data.T, # 2 hours
-                               data.profits
-                              )
+        InputDigraph(
+            Dict{Int,Vertex}(vcat(
+                depot => data.D.V[depot],
+                map(i::Int -> i => data.D.V[i], collect(Vb))
+            )),
+            Arcs(),
+            ArcCostMap(map(
+                a::Arc -> a => 0.0,
+                filter((i, j)::Arc -> i != j, χ(Vb))
+            ))
+        ),
+        depot,
+        B,
+        data.T, # 2 hours
+        data.profits
+    )
     V::Vi = Vi(collect(keys(data.D.V)))
-    paths::Dict{Arc, Vi} = Dict{Arc, Vi}(map((i, j)::Arc -> Arc(i, j) => Vi(), filter((i, j)::Pair{Int, Int} -> i != j, χ(Vb))))
+    paths::Dict{Arc,Vi} = Dict{Arc,Vi}(map((i, j)::Arc -> Arc(i, j) => Vi(), filter((i, j)::Pair{Int,Int} -> i != j, χ(Vb))))
 
     # adjList
     @debug "Creating adjacency list"
 
-    adjList::Dict{Int, Vi} = Dict{Int, Vi}(map(i::Int -> i => Vi(), V))
+    adjList::Dict{Int,Vi} = Dict{Int,Vi}(map(i::Int -> i => Vi(), V))
 
     for (i::Int, j::Int) in A
         push!(adjList[i], j)
@@ -184,8 +290,8 @@ function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
         @debug ">> Finding paths from node $i"
 
         # bfs
-        distances::Dict{Int, Float64} = Dict{Int, Float64}(map(i::Int -> i => typemax(Float64), V))
-        pred::Dict{Int, Int} = Dict{Int, Int}(map(i::Int -> i => i, V))
+        distances::Dict{Int,Float64} = Dict{Int,Float64}(map(i::Int -> i => typemax(Float64), V))
+        pred::Dict{Int,Int} = Dict{Int,Int}(map(i::Int -> i => i, V))
         q::Vi = Vi([i])
 
         distances[i] = 0.0
@@ -246,10 +352,10 @@ function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
 
     # check feasibility of the generated paths
     for (_, path::Vi) in paths
-        
-        path_arcs::Vector{Tuple{Int, Int}} = collect(zip(path[begin:end - 1], path[begin + 1:end]))
 
-        idx::Union{Nothing, Int} = findfirst((i, j)::Tuple{Int, Int} -> !in(Arc(i, j), arcs_set), path_arcs)
+        path_arcs::Vector{Tuple{Int,Int}} = collect(zip(path[begin:end-1], path[begin+1:end]))
+
+        idx::Union{Nothing,Int} = findfirst((i, j)::Tuple{Int,Int} -> !in(Arc(i, j), arcs_set), path_arcs)
 
         if idx != nothing
             throw(InvalidStateException("In path $path, the arc $((path[idx], path[idx + 1])) does not exist", :closed))
@@ -279,7 +385,7 @@ function createCompleteDigraph(data::SBRPData)::Pair{SBRPData, Dict{Arc, Vi}}
     checkSBRPCompleteFeasibility(data′, Vb)
 
 
-    return Pair{SBRPData, Dict{Arc, Vi}}(data′, paths)
+    return Pair{SBRPData,Dict{Arc,Vi}}(data′, paths)
 end
 
 #=
@@ -294,7 +400,7 @@ function _carlosBlockVerticesFromArcs!(arcs::Arcs)::Vi
     deleteat!(arcs, 1)
 
     while true
-        idx = findfirst((i, j)::Pair{Int, Int} -> next == i, arcs)
+        idx = findfirst((i, j)::Pair{Int,Int} -> next == i, arcs)
         idx == nothing && break
 
         curr, next = arcs[idx]
@@ -310,7 +416,10 @@ end
 Shared post-read pipeline for Carlos-format SBRP (reverse arcs, depot, metric closure).
 `data` must already have `D.V`, `D.distance`, `B`, and `profits` from the file (before reverse arcs).
 =#
-function _finalizeCarlosSbrpData(data::SBRPData, app::Dict{String, Any})::SBRPData
+function _finalizeCarlosSbrpData(
+    data::SBRPData,
+    app::Dict{String,Any},
+)::Tuple{SBRPData,Union{Dict{Arc,Vi},Nothing},Union{ArcCostMap,Nothing}}
 
     # Undirected streets: add reverse arcs when missing (sparse Path-CBRP / C++ Carlos parity).
     for a::Arc in collect(keys(data.D.distance))
@@ -334,13 +443,17 @@ function _finalizeCarlosSbrpData(data::SBRPData, app::Dict{String, Any})::SBRPDa
 
     data.D.A = collect(keys(data.D.distance))
 
+    if get(app, "drop-zero-profit-blocks", false)
+        dropZeroProfitBlocks!(data)
+    end
+
     # check feasibility
     @debug "Checking instance connectivity"
 
     Vb::Si = getBlocksNodes(data)
     distances::ArcCostMap = calculateShortestPaths(data)
 
-    not_connected::Union{Nothing, Arc} = nothing
+    not_connected::Union{Nothing,Arc} = nothing
     for p in χ(Vb)
         a_key::Arc = Arc(p.first, p.second)
         if !haskey(distances, a_key) || distances[a_key] >= ∞ / 2
@@ -354,35 +467,18 @@ function _finalizeCarlosSbrpData(data::SBRPData, app::Dict{String, Any})::SBRPDa
 
     if get(app, "no-cbrp-metric-closure", false)
         @debug "Skipping metric closure (sparse Carlos digraph)"
-        return data
+        return data, nothing, nothing
     end
 
-    # compact in complete graph
-    data′::SBRPData, paths′::Dict{Arc, Vi} = createCompleteDigraph(data)
+    # Same object Matheus `readSBRPData` passes to the complete digraph IP: metric-complete digraph
+    # on depot ∪ block nodes only (not the street hull `data‴` with full `D.V` and sparse `D.A`).
+    data′::SBRPData, paths′::Dict{Arc,Vi} = createCompleteDigraph(data)
 
     # check feasibility
     checkArcsFeasibility(data, data′)
 
-    # consider only shortest paths arcs
-    # copy
-    data‴ = deepcopy(data)
-    # set arcs
-    data‴.D.A = collect(ArcsSet(vcat(
-                                     [Arc(path[i], path[i + 1]) for (a, path) in paths′ for i in 1:(length(path) - 1)], # min paths arcs
-                                     [Arc(a.first, path[begin]) for (a, path) in paths′ if !∅(path)], # min paths arcs
-                                     [Arc(path[end], a.second) for (a, path) in paths′ if !∅(path)], # min paths arcs
-                                     [a for (a, path) in paths′ if ∅(path)], # min paths arcs (edge case)
-                                     [Arc(b[i], b[i + 1]) for b in data.B for i in 1:(length(b) - 1)], # blocks arcs
-                                     [Arc(b[end], b[begin]) for b in data.B], # blocks arcs
-                                     [Arc(data.depot, i) for i in Vb], # depot arcs
-                                     [Arc(i, data.depot) for i in Vb] # depot arcs
-                                    )))
-    data‴.D.distance = ArcCostMap(map(a::Arc -> a => data.D.distance[a], filter((i, j)::Arc -> i != j, data‴.D.A)))
-
-    # check feasibility
-    checkArcsFeasibility(data, data‴)
-
-    return data‴
+    street_distances::ArcCostMap = deepcopy(data.D.distance)
+    return data′, paths′, street_distances
 end
 
 #=
@@ -390,23 +486,24 @@ Create a SBRP instance from a Carlo's instance
 input:
 - app::Dict{String, Any} is the paramenters relation
 output:
-- data::SBRPData is the SBRP instance
+- `data`: sparse street digraph if `no-cbrp-metric-closure`; otherwise compact metric-complete digraph (`data′`, same as Matheus complete IP input).
+- `paths` / `street_distances`: populated iff metric closure ran; used to expand a compact IP tour back to street vertices (`retrieveOriginalDigraphSolution`), same role as `readSBRPData` for Matheus.
 =#
-function readSBRPDataCarlos(app::Dict{String, Any})::SBRPData
+function readSBRPDataCarlos(app::Dict{String,Any})::Tuple{SBRPData,Union{Dict{Arc,Vi},Nothing},Union{ArcCostMap,Nothing}}
 
     @debug "Reading Carlos SBRP instances"
 
     data::SBRPData = SBRPData(
-                              InputDigraph(
-                                           Dict{Int, Vertex}(1 => Vertex(-1, -1, -1)), 
-                                           Arcs(), 
-                                           ArcCostMap()
-                                          ), 
-                              -1,
-                              VVi(),
-                              parse(Float64, app["vehicle-time-limit"]),
-                              ArcCostMap()
-                             )
+        InputDigraph(
+            Dict{Int,Vertex}(1 => Vertex(-1, -1, -1)),
+            Arcs(),
+            ArcCostMap()
+        ),
+        -1,
+        VVi(),
+        parse(Float64, app["vehicle-time-limit"]),
+        ArcCostMap()
+    )
 
     open(app["instance"]) do f::IOStream
 
@@ -429,8 +526,8 @@ function readSBRPDataCarlos(app::Dict{String, Any})::SBRPData
         # get arcs
         @debug "Reading arcs"
 
-        block_arcs::Dict{Int, Arcs} = Dict{Int, Arcs}()
-        block_profit::Dict{Int, Int} = Dict{Int, Int}()
+        block_arcs::Dict{Int,Arcs} = Dict{Int,Arcs}()
+        block_profit::Dict{Int,Int} = Dict{Int,Int}()
 
         for n::Int in 1:nArcs
 
@@ -440,6 +537,9 @@ function readSBRPDataCarlos(app::Dict{String, Any})::SBRPData
             distance::Float64 = parse(Float64, strs[4])
             block_id::Int = parse(Int, strs[5])
             cases::Int = parse(Int, strs[6])
+
+            #rounded_distance = ceil(distance * 10.0) / 10.0
+            #rounded_distance = floor(distance)
 
             data.D.distance[a] = distance
 
@@ -483,23 +583,23 @@ output:
 - paths´::Dict{Arc, Vi} is the relation of paths
 - distances::ArcCostMap is the original arc distances relationship
 =#
-function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, ArcCostMap}
+function readSBRPData(app::Dict{String,Any})::Tuple{SBRPData,Dict{Arc,Vi},ArcCostMap}
 
     @debug "Reading Matheus's instance"
 
     depot::Int = 1
     data::SBRPData = SBRPData(
-                              InputDigraph(
-                                           Dict{Int, Vertex}(1 => Vertex(-1, -1, -1)), 
-                                           Arcs(), 
-                                           ArcCostMap()
-                                          ), 
-                              depot,
-                              VVi(),
-                              parse(Float64, app["vehicle-time-limit"]),
-                              ArcCostMap()
-                             )
-    blocks::Dict{Int, Arcs} = Dict{Int, Arcs}()
+        InputDigraph(
+            Dict{Int,Vertex}(1 => Vertex(-1, -1, -1)),
+            Arcs(),
+            ArcCostMap()
+        ),
+        depot,
+        VVi(),
+        parse(Float64, app["vehicle-time-limit"]),
+        ArcCostMap()
+    )
+    blocks::Dict{Int,Arcs} = Dict{Int,Arcs}()
 
     open(app["instance"]) do f::IOStream
 
@@ -540,14 +640,14 @@ function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, Ar
         readline(f)
         for _ in 1:nBlocks
             parts::Vector{String} = split(readline(f), [',', ' ']; limit=0, keepempty=false)
-            block::Vi = Vi([parse(Int, part) for part in parts[begin:end - 1]])
+            block::Vi = Vi([parse(Int, part) for part in parts[begin:end-1]])
             push!(data.B, block)
 
             # define profit
             if app["cluster-size-profits"]
                 data.profits[block] = length(block)
             elseif app["unitary-profits"]
-                data.profits[block] = 1.0 
+                data.profits[block] = 1.0
             else
                 data.profits[block] = parse(Float64, parts[end])
             end
@@ -558,9 +658,13 @@ function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, Ar
 
     # update arcs ids
     data.D.A = collect(keys(data.D.distance))
-	
+
     # dummy weights
     addDummyArcs(data)
+
+    if get(app, "drop-zero-profit-blocks", false)
+        dropZeroProfitBlocks!(data)
+    end
 
     # check feasibility
     @debug "Checking connectivity"
@@ -569,12 +673,12 @@ function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, Ar
 
     distances::ArcCostMap = calculateShortestPaths(data)
 
-    if any(a::Arc -> !in(a, keys(distances)), χ(Vb)) 
+    if any(a::Arc -> !in(a, keys(distances)), χ(Vb))
         throw(InvalidStateException("The SBRP instance it is not connected"))
     end
 
     # compact in complete graph
-    data′::SBRPData, paths′::Dict{Arc, Vi} = createCompleteDigraph(data)
+    data′::SBRPData, paths′::Dict{Arc,Vi} = createCompleteDigraph(data)
 
     # check feasibility
     checkArcsFeasibility(data, data′)
@@ -585,15 +689,15 @@ function readSBRPData(app::Dict{String, Any})::Tuple{SBRPData, Dict{Arc, Vi}, Ar
 
     # set arcs
     data‴.D.A = collect(ArcsSet(vcat(
-                                     [Arc(i, j) for (a::Arc, path::Vi) in paths′ for (i::Int, j::Int) in zip(path[1:end - 1], path[2:end])], # min paths arcs
-                                     [Arc(a.first, path[begin]) for (a::Arc, path::Vi) in paths′ if !isempty(path)], # min paths arcs
-                                     [Arc(path[end], a.second) for (a::Arc, path::Vi) in paths′ if !isempty(path)], # min paths arcs
-                                     [a for (a::Arc, path::Vi) in paths′ if isempty(path)], # min paths arcs (edge case)
-                                     [Arc(i, j) for block::Vi in data.B for (i::Int, j::Int) in zip(block[1:end - 1], block[2:end])], # blocks arcs
-                                     map(block::Vi -> Arc(block[end], block[begin]), data.B), # blocks arcs
-                                     map(i::Int -> Arc(depot, i), collect(Vb)), # depot arcs
-                                     map(i::Int -> Arc(i, depot), collect(Vb))  # depot arcs
-                                    )))
+        [Arc(i, j) for (a::Arc, path::Vi) in paths′ for (i::Int, j::Int) in zip(path[1:end-1], path[2:end])], # min paths arcs
+        [Arc(a.first, path[begin]) for (a::Arc, path::Vi) in paths′ if !isempty(path)], # min paths arcs
+        [Arc(path[end], a.second) for (a::Arc, path::Vi) in paths′ if !isempty(path)], # min paths arcs
+        [a for (a::Arc, path::Vi) in paths′ if isempty(path)], # min paths arcs (edge case)
+        [Arc(i, j) for block::Vi in data.B for (i::Int, j::Int) in zip(block[1:end-1], block[2:end])], # blocks arcs
+        map(block::Vi -> Arc(block[end], block[begin]), data.B), # blocks arcs
+        map(i::Int -> Arc(depot, i), collect(Vb)), # depot arcs
+        map(i::Int -> Arc(i, depot), collect(Vb))  # depot arcs
+    )))
     data‴.D.distance = ArcCostMap(map(a::Arc -> a => data.D.distance[a], data‴.D.A))
 
     # check feasibility
@@ -617,7 +721,7 @@ output:
 exception:
 - Case some irregularity is found
 =#
-function checkArcsFeasibility(data::SBRPData, data′::SBRPData) 
+function checkArcsFeasibility(data::SBRPData, data′::SBRPData)
 
     Vb::Si = getBlocksNodes(data)
 
@@ -648,23 +752,23 @@ output:
 function calculateShortestPaths(data::SBRPData)::ArcCostMap
 
     # params
-    V::Dict{Int, Vertex} = data.D.V
+    V::Dict{Int,Vertex} = data.D.V
     A::Arcs = data.D.A
     Vb::Si = getBlocksNodes(data)
 
     # building adjacency list
     @debug "Building adjacency list"
 
-    adjList::Dict{Int, Vi} = Dict{Int, Vi}(map(i::Int -> i => Vi(), collect(keys(V))))
+    adjList::Dict{Int,Vi} = Dict{Int,Vi}(map(i::Int -> i => Vi(), collect(keys(V))))
 
     for (i::Int, j::Int) in A
         push!(adjList[i], j)
     end
 
     distances::ArcCostMap = ArcCostMap(map(
-                                           a::Arc -> a => typemax(Float64), 
-                                           reduce(vcat, map(i::Int -> map(j::Int -> Arc(i, j), collect(keys(V))), collect(Vb)))
-                                          ))
+        a::Arc -> a => typemax(Float64),
+        reduce(vcat, map(i::Int -> map(j::Int -> Arc(i, j), collect(keys(V))), collect(Vb)))
+    ))
 
 
     # subrotine to find all shortest paths with root at node i
@@ -740,7 +844,7 @@ function checkSBRPCompleteFeasibility(data::SBRPData, Vb::Si)
     end
 end
 
-                                           
+
 #=
 Check feasibility of a SBRP instance
 input:
@@ -755,8 +859,8 @@ function checkSBRPfeasibility(data::SBRPData)
     # params
     V′::Si = getBlocksNodes(data)
     A::Arc = data.D.A
-    adjList::Dict{Int, Vi} = Dict{Int, Vi}(map(i::Int -> i => Vi(), V′))
-    revAdjList::Dict{Int, Vi} = Dict{Int, Vi}(map(i::Int -> i => Vi(), V′))
+    adjList::Dict{Int,Vi} = Dict{Int,Vi}(map(i::Int -> i => Vi(), V′))
+    revAdjList::Dict{Int,Vi} = Dict{Int,Vi}(map(i::Int -> i => Vi(), V′))
 
     # building adjacency list
     @debug "Building adjacency list"
@@ -782,7 +886,7 @@ function checkSBRPfeasibility(data::SBRPData)
 
     while !isempty(q)
 
-        curr::Int = popfirst!(q) 
+        curr::Int = popfirst!(q)
 
         for j::Int in adjList[curr]
 
@@ -823,7 +927,7 @@ function checkSBRPfeasibility(data::SBRPData)
     q = [v]
     while !isempty(q)
 
-        curr::Int = popfirst!(q) 
+        curr::Int = popfirst!(q)
 
         for i::Int in revAdjList[curr]
 
