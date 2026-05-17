@@ -3,17 +3,17 @@
 [ Info:   batch  =>  nothing
 [ Info:   subcycle-separation  =>  "all"
 [ Info:   no-cbrp-metric-closure  =>  true
-[ Info:   time-limit  =>  "20000"
-[ Info:   instance  =>  "data/carlos/notified-limoeiro/notified-limoeiro-1000-2020.txt"
+[ Info:   time-limit  =>  "3600"
+[ Info:   instance  =>  "data/carlos/notified-alto-santo/notified-alto-santo-1000-2018.txt"
 [ Info:   cluster-size-profits  =>  false
 [ Info:   ip  =>  true
 [ Info:   path-cbrp-mip  =>  true
-[ Info:   path-cbrp-warm-sol-format  =>  "path-cbrp-mtz"
+[ Info:   path-cbrp-warm-sol-format  =>  "auto"
 [ Info:   brkga  =>  false
 [ Info:   w-integer  =>  false
 [ Info:   unitary-profits  =>  false
-[ Info:   out  =>  "solutions/pcbrp_warm"
-[ Info:   path-cbrp-warm-sol  =>  "solutions/results-cbrp-article/path-cbrp-mtz/notified-limoeiro-1000-2020.txt"
+[ Info:   out  =>  "solutions/path_cbrp_no_warm/notified-alto-santo-1000-2018"
+[ Info:   path-cbrp-warm-sol  =>  ""
 [ Info:   instance-type  =>  "carlos"
 [ Info:   sol-stats  =>  false
 [ Info:   y-integer  =>  false
@@ -22,22 +22,7 @@
 [ Info:   z-integer  =>  false
 [ Info:   nosolve  =>  false
 [ Info:   brkga-conf  =>  "conf/config.conf"
-[ Info: |B| = 152
-[ Info: |V| = 373
-[ Info: |A| = 1778
+[ Info: |B| = 73
+[ Info: |V| = 180
+[ Info: |A| = 796
 [ Info: ###################Path-CBRP (Carlos sparse)####################
-┌ Warning: Path-CBRP warm X/Y: sum(t_a) over X arcs differs from depot tour traced along X (multiset / disconnected X?)
-│   sum_arc_times_from_X = 0.0
-│   traced_depot_tour_minutes = 16.007384999999992
-└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/brkga_path_warmstart.jl:231
-┌ Info: Path-CBRP warm-start time (path-cbrp-mtz X/Y)
-│   travel_minutes = 0.0
-│   service_minutes = 111.8805
-│   total_minutes = 111.8805
-│   budget_minutes = 120.0
-│   slack_minutes = 8.119500000000002
-│   exceeds_budget = false
-└   num_serviced_blocks = 41
-[ Info: instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,zLP,zLPTime,wLP,wLPTime,maxFlowLP,maxFlowCuts,maxFlowCutsTime,cost,solverTime,relativeGAP,nodeCount,phase1Time,meters,tourMinutes,blocksMeters,numVisitedBlocks,intersectionCutsTime,intersectionCuts1,intersectionCuts2
-[ Info: notified-limoeiro-1000-2020,373,1778,152,120.0,PathCBRPIP,N/A,N/A,0,N/A,0,N/A,0,N/A,0,0,883.00,0.164182666,0.0,0,0.8402018547058105,10671.589999999995,127.88788499999998,18646.750000000004,41,0,0,0
-[ Info: ########################################################

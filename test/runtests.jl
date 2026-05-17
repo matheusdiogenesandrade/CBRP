@@ -162,6 +162,25 @@ end
     @test constraint_object(model[:fix_warm_y][2]).set.value ≈ 0.0
 end
 
+@testset "Path-CBRP addPathSubtourCut structural" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    model = direct_model(CPLEX.Optimizer())
+    A::Arcs = Arcs([1 => 2, 2 => 3, 3 => 1])
+    y_meta = [(1, 1), (1, 2)]
+    out_idx = Dict(1 => [1, 3], 2 => [2], 3 => [3])
+    @variable(model, x[1:3], Bin)
+    @variable(model, y[1:2], Bin)
+    S::Set{Int} = Set([1, 2])
+    cut::PathSubtourCut = (S, 1, 3, 1, 2)
+    addPathSubtourCut!(model, A, out_idx, cut)
+    cons = all_constraints(model; include_variable_in_set_constraints=false)
+    @test length(cons) == 1
+    @test occursin("c_path_sec", name(cons[1]))
+    @test num_variables(model) == 5
+end
+
 @testset "Path-CBRP IP smoke (CPLEX)" begin
     root::String = joinpath(@__DIR__, "..")
     inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
@@ -186,9 +205,49 @@ end
         ok[] || @test_skip "CPLEX unavailable or Path-CBRP solver error"
         @test sol !== nothing && info !== nothing
         @test haskey(info, "cost")
+        @test haskey(info, "bestBound")
+        @test info["bestBound"] != ""
         @test parse(Float64, info["cost"]) ≥ 0.0
+        if info["bestBound"] != "N/A"
+            @test parse(Float64, info["cost"]) <= parse(Float64, info["bestBound"]) + 1e-3
+        end
         @test length(sol.tour) ≥ 2
         @test get(info, "warmStartUsed", "false") == "false"
+    end
+end
+
+@testset "Path-CBRP SEC smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        ok::Ref{Bool} = Ref(false)
+        sol::Union{Nothing,SBRPSolution} = nothing
+        info::Union{Nothing,Dict{String,String}} = nothing
+        data::Union{Nothing,SBRPData} = nothing
+        try
+            data = readSBRPDataCarlos(Dict{String,Any}(
+                "instance" => inst,
+                "vehicle-time-limit" => "120",
+                "no-cbrp-metric-closure" => true,
+            ))[1]
+            solve_app_sec = Dict{String,Any}(
+                "time-limit" => "30",
+                "subcycle-separation" => "first",
+            )
+            sol, info = runPathCbrpMipModel(data, solve_app_sec)
+            ok[] = true
+        catch
+        end
+        ok[] || @test_skip "CPLEX unavailable or Path-CBRP SEC solver error"
+        @test sol !== nothing && info !== nothing && data !== nothing
+        @test parse(Int, get(info, "maxFlowCuts", "0")) >= 0
+        @test haskey(info, "maxFlowCutsTime")
+        include(joinpath(root, "src", "sol.jl"))
+        checkSBRPSolution(data::SBRPData, sol::SBRPSolution)
     end
 end
 
@@ -457,6 +516,11 @@ end
                 "w-integer" => false,
             ))
             @test haskey(info, "cost")
+            @test haskey(info, "bestBound")
+            @test info["bestBound"] != ""
+            if info["bestBound"] != "N/A"
+                @test parse(Float64, info["cost"]) <= parse(Float64, info["bestBound"]) + 1e-3
+            end
             @test length(sol.tour) ≥ 2
             ok[] = true
         catch

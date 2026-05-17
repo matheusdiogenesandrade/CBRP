@@ -172,10 +172,25 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
     logPathCbrpWarmStartTimeAccounting!(data, app)
 
     info["phase1Time"] = string(Base.time() - phase1_wall_start)
+
+    if get(app, "subcycle-separation", "none") != "none"
+        unsetBinary(values(x))
+        unsetBinary(values(y))
+        sep_start::Float64 = Base.time()
+        path_subtour_cuts::Set{PathSubtourCut} =
+            getPathSubtourCuts(data, model, app, A, y_meta, out_idx, depot)
+        restorePathCbrpMipPreprocessor!(model)
+        info["maxFlowCutsTime"] = string(Base.time() - sep_start)
+        info["maxFlowCuts"] = string(length(path_subtour_cuts))
+        setBinary(values(x))
+        setBinary(values(y))
+    end
+
     info["solverTime"] = string(@elapsed optimize!(model))
 
     if !has_values(model)
         info["cost"] = "0.00"
+        info["bestBound"] = _mip_best_bound_str(model)
         info["relativeGAP"] = "N/A"
         info["nodeCount"] = try
             string(node_count(model))
@@ -187,6 +202,7 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
     end
 
     info["cost"] = @sprintf("%.2f", objective_value(model))
+    info["bestBound"] = _mip_best_bound_str(model)
     info["relativeGAP"] = try
         string(relative_gap(model))
     catch

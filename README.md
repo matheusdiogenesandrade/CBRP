@@ -34,6 +34,8 @@ julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solut
 
 **Carlos sparse digraph + Path-CBRP MILP:** use `--instance-type carlos`, `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
 
+**Path-CBRP subtour elimination:** `--subcycle-separation` (`first`|`best`|`all`|`none`, default `all`) runs a pre-MIP max-flow separator that adds inequalities \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\) coupling arc tour variables with block–vertex \(y_{b,i}\). Logs include `maxFlowCuts` and `maxFlowCutsTime`. Use `none` to skip (faster, MTZ-only).
+
 Example:
 
 ```sh

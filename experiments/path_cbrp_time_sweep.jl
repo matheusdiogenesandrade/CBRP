@@ -55,6 +55,10 @@ function parse_cli()::Union{Nothing,Dict{String,Any}}
         help = "Output CSV file path"
         arg_type = String
         required = true
+        "--subcycle-separation"
+        help = "Path SEC max-flow separation: first|best|all|none (default all, same as src/run.jl)"
+        arg_type = String
+        default = "all"
     end
     return parse_args(ARGS, s)
 end
@@ -82,10 +86,13 @@ function write_result_row(
         string(num_serviced),
         csv_escape(terminal),
         csv_escape(get_info_str(info, "cost")),
+        csv_escape(get_info_str(info, "bestBound")),
         csv_escape(get_info_str(info, "solverTime")),
         csv_escape(get_info_str(info, "relativeGAP")),
         csv_escape(get_info_str(info, "nodeCount")),
         csv_escape(get_info_str(info, "phase1Time")),
+        csv_escape(get_info_str(info, "maxFlowCuts")),
+        csv_escape(get_info_str(info, "maxFlowCutsTime")),
         csv_escape(get_info_str(info, "noFeasibleSolution")),
         csv_escape(error_message),
     ]
@@ -109,6 +116,11 @@ function main()::Cint
     max_iterations::Int = app["max-iterations"]
     time_limit_str::String = app["time-limit"]
     out_csv::String = app["out-csv"]
+    subcycle::String = app["subcycle-separation"]
+    if !(subcycle in ("first", "best", "all", "none"))
+        println(stderr, "error: --subcycle-separation must be one of first|best|all|none")
+        return Cint(2)
+    end
 
     inst_raw::String = app["instance"]
     instance_path::String = isabspath(inst_raw) ? inst_raw : abspath(inst_raw)
@@ -139,7 +151,10 @@ function main()::Cint
         return Cint(2)
     end
 
-    solve_app = Dict{String,Any}("time-limit" => time_limit_str)
+    solve_app = Dict{String,Any}(
+        "time-limit" => time_limit_str,
+        "subcycle-separation" => subcycle,
+    )
 
     io = open(out_csv, "w")
     try
@@ -151,10 +166,13 @@ function main()::Cint
             "num_serviced_blocks",
             "terminal",
             "cost",
+            "bestBound",
             "solverTime",
             "relativeGAP",
             "nodeCount",
             "phase1Time",
+            "maxFlowCuts",
+            "maxFlowCutsTime",
             "noFeasibleSolution",
             "error_message",
         ]

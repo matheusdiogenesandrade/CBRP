@@ -14,6 +14,15 @@ function _set_cplex_threads!(model::Model, n::Int=1)
     set_optimizer_attribute(model, "CPXPARAM_Threads", n)
 end
 
+"""Format MOI objective bound (CPLEX Best Bound; UB for Max) for logging."""
+function _mip_best_bound_str(model::Model)::String
+    try
+        return @sprintf("%.2f", objective_bound(model))
+    catch
+        return "N/A"
+    end
+end
+
 #=
 Get intersection cuts
 input:
@@ -645,6 +654,7 @@ function runCOPCompleteDigraphIPModel(
     # TIME_LIMIT (or other stop) with no integer incumbent → MOI has 0 results; objective_value throws.
     if !has_values(model)
         info["cost"] = "0.00"
+        info["bestBound"] = _mip_best_bound_str(model)
         info["relativeGAP"] = try
             string(relative_gap(model))
         catch
@@ -664,6 +674,7 @@ function runCOPCompleteDigraphIPModel(
     end
 
     info["cost"] = @sprintf("%.2f", objective_value(model))
+    info["bestBound"] = _mip_best_bound_str(model)
     info["relativeGAP"] = string(relative_gap(model))
     info["nodeCount"] = string(node_count(model))
 
