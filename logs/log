@@ -2,12 +2,12 @@
 [ Info:   intersection-cuts  =>  false
 [ Info:   batch  =>  nothing
 [ Info:   subcycle-separation  =>  "all"
-[ Info:   no-cbrp-metric-closure  =>  true
+[ Info:   no-cbrp-metric-closure  =>  false
 [ Info:   time-limit  =>  "0"
 [ Info:   instance  =>  "data/carlos/notified-alto-santo/notified-alto-santo-3000-2020.txt"
 [ Info:   cluster-size-profits  =>  false
 [ Info:   ip  =>  true
-[ Info:   path-cbrp-mip  =>  true
+[ Info:   path-cbrp-mip  =>  false
 [ Info:   path-cbrp-warm-sol-format  =>  "auto"
 [ Info:   brkga  =>  false
 [ Info:   w-integer  =>  false
@@ -21,17 +21,13 @@
 [ Info:   drop-zero-profit-blocks  =>  false
 [ Info:   vehicle-time-limit  =>  "120"
 [ Info:   z-integer  =>  false
-[ Info:   no-path-cbrp-mtz  =>  true
+[ Info:   no-path-cbrp-mtz  =>  false
 [ Info:   nosolve  =>  false
 [ Info:   brkga-conf  =>  "conf/config.conf"
 [ Info: |B| = 114
-[ Info: |V| = 354
-[ Info: |A| = 1488
-[ Info: ###################Path-CBRP (Carlos sparse)####################
-┌ Warning: Path-CBRP: 814 arc(s) remain after closing at depot (MTZ may still allow degeneracy); tour omits them.
-└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/path_cbrp_ip.jl:273
-┌ Warning: Path-CBRP solution failed SBRP arc/block checks (subtours possible without SEC): Block [19, 86, 28, 29] was not served
-└ @ Main ~/Documentos/PhD/2024.2/COPAlgorithms/external/CBRP_original/src/run.jl:254
-[ Info: instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,zLP,zLPTime,wLP,wLPTime,maxFlowLP,maxFlowCuts,maxFlowCutsTime,maxFlowUserCuts,maxFlowLazyCuts,subcycleSeparationEngine,pathCbrpMtzEnabled,cost,bestBound,solverTime,relativeGAP,nodeCount,phase1Time,meters,tourMinutes,blocksMeters,numVisitedBlocks,intersectionCutsTime,intersectionCuts1,intersectionCuts2
-[ Info: notified-alto-santo-3000-2020,354,1488,114,120.0,PathCBRPIP,N/A,N/A,0,N/A,0,N/A,0,N/A,0,0.234053753,0,0,callback,false,988.00,988.00,0.514690724,0.0,0,0.6431198120117188,8060.96,82.4352,11723.960000000001,28,0,0,0
+[ Info: |V| = 263
+[ Info: |A| = 68906
+[ Info: ###################SBRP####################
+[ Info: instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,maxFlowCuts,maxFlowCutsTime,maxFlowUserCuts,maxFlowLazyCuts,subcycleSeparationEngine,lazyCuts,cost,bestBound,solverTime,relativeGAP,nodeCount,meters,tourMinutes,blocksMeters,numVisitedBlocks
+[ Info: notified-alto-santo-3000-2020,263,68906,114,120.0,IP,988.0,988.0,0.696402741,292,0.557558205,292,0,callback,0,988.00,988.00,24.213281697,0.0,0,32102.06,118.48724999999999,11722.36,28
 [ Info: ########################################################

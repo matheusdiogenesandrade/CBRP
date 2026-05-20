@@ -60,7 +60,7 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         help = "Subcycle separation strategy: first|best|all|none (Path-CBRP and complete model)"
         default = "all"
         "--subcycle-separation-engine"
-        help = "Path-CBRP SEC host: root = pre-MIP LP loop; callback = user+lazy SEC at B&C"
+        help = "SEC host (complete digraph + Path-CBRP): root = pre-MIP LP loop; callback = user+lazy SEC at B&C"
         default = "root"
         "--y-integer"
         help = "Fix the variable y, for the complete model, when running the separation algorithm"
@@ -417,13 +417,15 @@ function run(app::Dict{String,Any})
     sep_engine::String = String(strip(String(get(app, "subcycle-separation-engine", "root"))))
     sep_engine in ("root", "callback") ||
         error("--subcycle-separation-engine must be root or callback (got $(repr(sep_engine)))")
-    if sep_engine == "callback" && !app["path-cbrp-mip"]
-        error("--subcycle-separation-engine callback requires --path-cbrp-mip")
+    sep_mode_chk::String = String(strip(String(get(app, "subcycle-separation", "none"))))
+    if sep_engine == "callback" && sep_mode_chk == "none"
+        error(
+            "--subcycle-separation-engine callback requires subcycle-separation != none",
+        )
     end
 
     if get(app, "no-path-cbrp-mtz", false)
         app["path-cbrp-mip"] || error("--no-path-cbrp-mtz requires --path-cbrp-mip")
-        sep_mode_chk::String = String(strip(String(get(app, "subcycle-separation", "none"))))
         if sep_mode_chk == "none" || sep_engine != "callback"
             error(
                 "--no-path-cbrp-mtz requires Path SEC callback separation " *

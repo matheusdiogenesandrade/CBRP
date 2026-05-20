@@ -68,6 +68,10 @@ function parse_cli()::Union{Nothing,Dict{String,Any}}
         help = "Subcycle separation: first|best|all|none (complete IP prep phase)"
         arg_type = String
         default = "all"
+        "--subcycle-separation-engine"
+        help = "SEC host: root|callback (default root, same as src/run.jl)"
+        arg_type = String
+        default = "root"
         "--intersection-cuts"
         help = "Enable intersection cuts in the complete model"
         action = :store_true
@@ -128,6 +132,9 @@ function write_result_row(
         csv_escape(get_info_str(info, "yLPTime")),
         csv_escape(get_info_str(info, "maxFlowCutsTime")),
         csv_escape(get_info_str(info, "maxFlowCuts")),
+        csv_escape(get_info_str(info, "maxFlowUserCuts")),
+        csv_escape(get_info_str(info, "maxFlowLazyCuts")),
+        csv_escape(get_info_str(info, "subcycleSeparationEngine")),
         csv_escape(get_info_str(info, "intersectionCutsTime")),
         csv_escape(get_info_str(info, "phase1Time")),
         csv_escape(get_info_str(info, "noFeasibleSolution")),
@@ -187,6 +194,15 @@ function main()::Cint
         println(stderr, "error: --subcycle-separation must be one of first|best|all|none")
         return Cint(2)
     end
+    subcycle_engine::String = app["subcycle-separation-engine"]
+    if !(subcycle_engine in ("root", "callback"))
+        println(stderr, "error: --subcycle-separation-engine must be root or callback")
+        return Cint(2)
+    end
+    if subcycle_engine == "callback" && subcycle == "none"
+        println(stderr, "error: --subcycle-separation-engine callback requires subcycle-separation != none")
+        return Cint(2)
+    end
 
     # Metric closure ON (default): do not set no-cbrp-metric-closure
     app_read = Dict{String,Any}(
@@ -227,6 +243,9 @@ function main()::Cint
             "yLPTime",
             "maxFlowCutsTime",
             "maxFlowCuts",
+            "maxFlowUserCuts",
+            "maxFlowLazyCuts",
+            "subcycleSeparationEngine",
             "intersectionCutsTime",
             "phase1Time",
             "noFeasibleSolution",
@@ -251,6 +270,7 @@ function main()::Cint
             solve_app::Dict{String, Any} = Dict{String, Any}(
                 "time-limit" => time_limit_str,
                 "subcycle-separation" => subcycle,
+                "subcycle-separation-engine" => subcycle_engine,
                 "intersection-cuts" => get(app, "intersection-cuts", false),
                 "y-integer" => get(app, "y-integer", false),
                 "z-integer" => get(app, "z-integer", false),

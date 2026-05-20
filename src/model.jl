@@ -26,6 +26,7 @@ function blocks(B::VVi, S::Si)::VVi
 end
 
 include("ip_model.jl")
+include("complete_subtour_cuts.jl")
 include("path_cbrp_interfaces.jl")
 include("brkga_path_warmstart.jl")
 include("path_cbrp_ip.jl")

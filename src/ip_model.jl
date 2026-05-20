@@ -235,23 +235,13 @@ function getSubtourCuts(
     # outputs
     components::Set{Tuple{Arcs,Arcs}} = Set{Tuple{Arcs,Arcs}}()
 
-    # helpers
-    Vₘ = Dict{Int,Int}(map((idx, i)::Tuple{Int,Int} -> i => idx, enumerate(V)))
-    Vₘʳ = Dict{Int,Int}(map((idx, i)::Tuple{Int,Int} -> idx => i, enumerate(V)))
-
-    n::Int = length(Vₘ)
     iteration::Int = 1
 
     # Before the while loop
     set_optimizer_attribute(model, "CPXPARAM_LPMethod", 2)
-
-    #
     set_optimizer_attribute(model, "CPXPARAM_Advance", 1)
 
-    #
-    epsilon::Float64 = 1e-2
-
-    # get cuts greedly
+    # get cuts greedily
     while true
 
         # Set silent mode
@@ -273,97 +263,12 @@ function getSubtourCuts(
         z_val::Dict{Int,Float64} = Dict{Int,Float64}(map(i::Int -> i => value(z[i]), V))
         x_val::ArcCostMap = ArcCostMap(map(a::Arc -> a => value(x[a]), A))
 
-        # get subsets
-        g = SparseMaxFlowMinCut.ArcFlow[]
-        M::Int = 100000
-        new_components::Set{Tuple{Arcs,Arcs}} = Set{Tuple{Arcs,Arcs}}()
+        ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(data, model, app)
+        new_components::Set{Tuple{Arcs,Arcs}} =
+            findViolatedCompleteSubtourCuts(ctx, x_val, z_val, w_val)
 
-        # used arcs
-        A′::Arcs = filter(a::Arc -> x_val[a] > EPS, A)
-
-        # used nodes
-        V′::Vi = filter(i::Int -> z_val[i] > EPS, V)
-
-        # depots
-        depots′::Vi = filter(i::Int -> w_val[i] > EPS, V)
-
-        # mounting graph
-        for (i::Int, j::Int) in A′
-            push!(g, SparseMaxFlowMinCut.ArcFlow(Vₘ[i], Vₘ[j], trunc(floor(x_val[Arc(i, j)], digits=5) * M)))
-        end
-
-        #
-        max_violation::Float64 = 0.0
-
-        # get subsets
-        for source::Int in depots′
-
-            for target::Int in V′
-
-                # edge case
-                source == target && continue
-
-                # init
-                maxFlow::Float64, flows, set = SparseMaxFlowMinCut.find_maxflow_mincut(
-                    SparseMaxFlowMinCut.Graph(n, g),
-                    Vₘ[source],
-                    Vₘ[target]
-                )
-                flow::Float64 = maxFlow / M
-
-                # base case: In the same component
-                (set[Vₘ[target]] == 1) && continue
-
-                # base case: Condition not met
-                flow + epsilon >= z_val[source] + z_val[target] - 1 && continue
-
-                # get set
-                S::Si = Si(map(i::Int -> Vₘʳ[i], filter(i::Int -> set[i] == 1, 1:n)))
-
-                # base case 3
-                #      length(S) <= 1 && continue
-
-                # get components
-                Aₛ::Arcs = δ⁺(A, S)
-                Aᵢ::Arcs = union(δ⁺(A′, source), δ⁺(A′, target))
-
-                # calculate violation degree
-                violation::Float64 = z_val[source] + z_val[target] - 1 - (flow + epsilon)
-
-
-                # best improvement case
-                if app["subcycle-separation"] == "best"
-
-                    if max_violation < violation
-
-                        # clean
-                        empty!(new_components)
-
-                    else
-
-                        continue
-
-                    end
-                end
-
-                # update
-                max_violation = max(violation, max_violation)
-
-                # store
-                push!(new_components, (Aₛ, Aᵢ))
-                addSubtourCut(model, Aₛ, Aᵢ)
-
-                #
-                #println("S: ", S)
-
-                # first improvement case
-                app["subcycle-separation"] == "first" && break
-
-            end
-
-            # first improvement case
-            (app["subcycle-separation"] == "first" && !isempty(new_components)) && break
-
+        for (Aₛ::Arcs, Aᵢ::Arcs) in new_components
+            addSubtourCut(model, Aₛ, Aᵢ)
         end
 
         # base case
@@ -371,9 +276,6 @@ function getSubtourCuts(
 
         # store components
         union!(components, new_components)
-
-        # add ineqs
-        #addSubtourCuts(model, components)
 
         # After the first iteration, you could potentially disable presolve
         # if the number of cuts is small and iterations are many.
@@ -485,6 +387,11 @@ function runCOPCompleteDigraphIPModel(
         "warmStartUsed" => "false",
         "pooledSubtourCutsSeeded" => "0",
         "usedCachedIntersection" => "n/a",
+        "maxFlowCuts" => "0",
+        "maxFlowCutsTime" => "0",
+        "maxFlowUserCuts" => "0",
+        "maxFlowLazyCuts" => "0",
+        "subcycleSeparationEngine" => "root",
     )
 
     new_subtour_cuts::Set{Tuple{Arcs,Arcs}} = Set{Tuple{Arcs,Arcs}}()
@@ -598,22 +505,18 @@ function runCOPCompleteDigraphIPModel(
     info["yLPTime"] = string(@elapsed optimize!(model))
     info["yLP"] = string(objective_value(model))
 
-    # get max-flow cuts with x and y relaxed or integer
-    if app["subcycle-separation"] != "none"
-        if !app["y-integer"]
-            unsetBinary(values(y))
-        end
-        if !app["z-integer"]
-            unsetBinary(values(z))
-        end
-        if !app["w-integer"]
-            unsetBinary(values(w))
-        end
+    sep_mode::String = get(app, "subcycle-separation", "none")
+    sep_engine::String = get(app, "subcycle-separation-engine", "root")
+    info["subcycleSeparationEngine"] = sep_engine
+    callback_stats::Union{CompleteSubtourCallbackStats,Nothing} = nothing
 
-        reuse_cuts::Bool = get(app, "reuse-cuts", false)
-        pool::Union{Nothing,Set{Tuple{Arcs,Arcs}}} = get(app, "subtour_cut_pool", nothing)
-        seed_pool::Bool = reuse_cuts && pool !== nothing && !isempty(pool)
+    validateCompleteSubtourSeparation!(app)
 
+    reuse_cuts::Bool = get(app, "reuse-cuts", false)
+    pool::Union{Nothing,Set{Tuple{Arcs,Arcs}}} = get(app, "subtour_cut_pool", nothing)
+    seed_pool::Bool = reuse_cuts && pool !== nothing && !isempty(pool)
+
+    if sep_mode != "none"
         if seed_pool
             addSubtourCuts(model, pool::Set{Tuple{Arcs,Arcs}})
             info["pooledSubtourCutsSeeded"] = string(length(pool::Set{Tuple{Arcs,Arcs}}))
@@ -621,15 +524,29 @@ function runCOPCompleteDigraphIPModel(
             info["pooledSubtourCutsSeeded"] = "0"
         end
 
-        info["maxFlowCutsTime"] = string(@elapsed new_subtour_cuts = getSubtourCuts(data, model, app, info))
+        if sep_engine == "root"
+            if !app["y-integer"]
+                unsetBinary(values(y))
+            end
+            if !app["z-integer"]
+                unsetBinary(values(z))
+            end
+            if !app["w-integer"]
+                unsetBinary(values(w))
+            end
 
-        info["maxFlowCuts"] = string(length(new_subtour_cuts))
-
-        # subtour cuts
-        addSubtourCuts(model, new_subtour_cuts)
-        optimize!(model)
-
-        info["maxFlowLP"] = string(objective_value(model))
+            info["maxFlowCutsTime"] = string(@elapsed begin
+                new_subtour_cuts = getSubtourCuts(data, model, app, info)
+            end)
+            info["maxFlowCuts"] = string(length(new_subtour_cuts))
+            optimize!(model)
+            info["maxFlowLP"] = string(objective_value(model))
+        elseif sep_engine == "callback"
+            _set_cplex_threads!(model, 1)
+            ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(data, model, app)
+            callback_stats = CompleteSubtourCallbackStats(0, 0, 0.0)
+            registerCompleteSubtourSeparationCallback!(model, ctx, callback_stats)
+        end
     else
         info["pooledSubtourCutsSeeded"] = "0"
     end
@@ -650,6 +567,23 @@ function runCOPCompleteDigraphIPModel(
 
     # run
     info["solverTime"] = string(@elapsed optimize!(model))
+
+    if callback_stats !== nothing
+        info["maxFlowCuts"] =
+            string(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts)
+        info["maxFlowUserCuts"] = string(callback_stats.n_user_cuts)
+        info["maxFlowLazyCuts"] = string(callback_stats.n_lazy_cuts)
+        info["maxFlowCutsTime"] = string(callback_stats.sep_time)
+        if get(ENV, "COMPLETE_SEC_CALLBACK_LOG", "1") != "0"
+            println(
+                "[CompleteSEC] solve done: submitted user=$(callback_stats.n_user_cuts) " *
+                "lazy=$(callback_stats.n_lazy_cuts) " *
+                "total=$(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts) " *
+                "sep_time=$(callback_stats.sep_time)s",
+            )
+            flush(stdout)
+        end
+    end
 
     # TIME_LIMIT (or other stop) with no integer incumbent → MOI has 0 results; objective_value throws.
     if !has_values(model)

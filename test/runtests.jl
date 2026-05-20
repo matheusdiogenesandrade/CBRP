@@ -234,6 +234,114 @@ end
     @test !pathCallbackSolutionIsInteger(Dict(1 => 1.0), Dict(1 => 0.5))
 end
 
+@testset "findViolatedCompleteSubtourCuts unit" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+
+    Vlist::Vi = Vi([1, 2, 3])
+    A::Arcs = Arcs([Arc(1, 2), Arc(2, 3), Arc(3, 1), Arc(2, 1), Arc(3, 2), Arc(1, 3)])
+    dist::ArcCostMap = ArcCostMap(map(a::Arc -> a => 1.0, A))
+    Vdict::Dict{Int,Vertex} = Dict{Int,Vertex}(
+        1 => Vertex(1, 0.0, 0.0),
+        2 => Vertex(2, 1.0, 0.0),
+        3 => Vertex(3, 0.0, 1.0),
+    )
+    data::SBRPData = SBRPData(
+        InputDigraph(Vdict, A, dist),
+        1,
+        VVi([Vi([2]), Vi([3])]),
+        60.0,
+        Dict{Vi,Float64}(Vi([2]) => 1.0, Vi([3]) => 1.0),
+    )
+
+    model::Model = direct_model(CPLEX.Optimizer())
+    set_silent(model)
+    @variable(model, x[a::Arc in A], Bin)
+    @variable(model, z[i::Int in Vlist], Bin)
+    @variable(model, w[i::Int in Vlist], Bin)
+
+    app::Dict{String,Any} = Dict{String,Any}("subcycle-separation" => "all")
+    ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(data, model, app)
+
+    x_val::ArcCostMap = ArcCostMap(
+        Arc(1, 2) => 0.4,
+        Arc(2, 3) => 0.4,
+        Arc(3, 1) => 0.4,
+        Arc(2, 1) => 0.0,
+        Arc(3, 2) => 0.0,
+        Arc(1, 3) => 0.0,
+    )
+    z_val::Dict{Int,Float64} = Dict(1 => 1.0, 2 => 0.9, 3 => 0.9)
+    w_val::Dict{Int,Float64} = Dict(1 => 1.0, 2 => 0.0, 3 => 0.0)
+    cuts::Set{Tuple{Arcs,Arcs}} = findViolatedCompleteSubtourCuts(ctx, x_val, z_val, w_val)
+    @test !isempty(cuts)
+
+    x_ok::ArcCostMap = ArcCostMap(map(a::Arc -> a => 1.0, A))
+    z_ok::Dict{Int,Float64} = Dict(1 => 0.5, 2 => 0.5, 3 => 0.5)
+    w_ok::Dict{Int,Float64} = Dict(1 => 1.0, 2 => 0.0, 3 => 0.0)
+    cuts_ok::Set{Tuple{Arcs,Arcs}} =
+        findViolatedCompleteSubtourCuts(ctx, x_ok, z_ok, w_ok)
+    @test isempty(cuts_ok)
+end
+
+@testset "Complete digraph SEC callback validation" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "model.jl"))
+    @test_throws ArgumentError validateCompleteSubtourSeparation!(
+        Dict{String,Any}(
+            "subcycle-separation" => "none",
+            "subcycle-separation-engine" => "callback",
+        ),
+    )
+    validateCompleteSubtourSeparation!(
+        Dict{String,Any}(
+            "subcycle-separation" => "first",
+            "subcycle-separation-engine" => "callback",
+        ),
+    )
+end
+
+@testset "Complete digraph SEC callback smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        ok::Ref{Bool} = Ref(false)
+        info::Union{Nothing,Dict{String,String}} = nothing
+        try
+            data = readSBRPDataCarlos(Dict{String,Any}(
+                "instance" => inst,
+                "vehicle-time-limit" => "120",
+                "no-cbrp-metric-closure" => false,
+            ))[1]
+            data.T = 90.0
+            _, info = runCOPCompleteDigraphIPModel(data, Dict{String,Any}(
+                "time-limit" => "30",
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+                "intersection-cuts" => false,
+                "y-integer" => false,
+                "z-integer" => false,
+                "w-integer" => false,
+            ))
+            ok[] = true
+        catch e
+            if e isa ArgumentError
+                rethrow(e)
+            end
+        end
+        ok[] || @test_skip "CPLEX unavailable or complete digraph callback solver error"
+        @test info !== nothing
+        @test get(info, "subcycleSeparationEngine", "") == "callback"
+        @test haskey(info, "maxFlowUserCuts")
+        @test parse(Int, get(info, "maxFlowUserCuts", "0")) >= 0
+    end
+end
+
 @testset "Path-CBRP no-MTZ validation" begin
     root::String = joinpath(@__DIR__, "..")
     include(joinpath(root, "src", "model.jl"))
