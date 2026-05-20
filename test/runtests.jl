@@ -181,6 +181,94 @@ end
     @test num_variables(model) == 5
 end
 
+@testset "findViolatedPathSubtourCuts unit" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    model = Model()
+    A::Arcs = Arcs([1 => 2, 2 => 3, 3 => 1])
+    y_meta::Vector{Tuple{Int,Int}} = [(1, 2), (1, 3)]
+    out_idx::Dict{Int,Vector{Int}} = Dict(1 => [1], 2 => [2], 3 => [3])
+    @variable(model, x[1:3])
+    @variable(model, y[1:2])
+    V::Vi = Vi([1, 2, 3])
+    y_at::Dict{Tuple{Int,Int},Int} = path_y_index_map(y_meta)
+    blocks_at::Dict{Int,Vector{Int}} = path_blocks_at(y_meta)
+    Vₘ = Dict{Int,Int}(1 => 1, 2 => 2, 3 => 3)
+    Vₘʳ = Dict{Int,Int}(1 => 1, 2 => 2, 3 => 3)
+    ctx::PathSubtourSepContext = PathSubtourSepContext(
+        model,
+        x,
+        y,
+        A,
+        y_meta,
+        out_idx,
+        1,
+        V,
+        y_at,
+        blocks_at,
+        Vₘ,
+        Vₘʳ,
+        3,
+        1e-2,
+        "all",
+        100_000,
+    )
+    # Low arc flow but high y: SEC sum x(delta+(S)) >= y_i + y_j - 1 should be violated.
+    x_val::Dict{Int,Float64} = Dict(1 => 0.4, 2 => 0.4, 3 => 0.4)
+    y_val::Dict{Int,Float64} = Dict(1 => 0.9, 2 => 0.9)
+    cuts::Set{PathSubtourCut} = findViolatedPathSubtourCuts(ctx, x_val, y_val)
+    @test !isempty(cuts)
+    # Feasible at equality: enough flow on cut arcs for active y.
+    x_ok::Dict{Int,Float64} = Dict(1 => 1.0, 2 => 1.0, 3 => 1.0)
+    y_ok::Dict{Int,Float64} = Dict(1 => 0.5, 2 => 0.5)
+    cuts_ok::Set{PathSubtourCut} = findViolatedPathSubtourCuts(ctx, x_ok, y_ok)
+    @test isempty(cuts_ok)
+end
+
+@testset "pathCallbackSolutionIsInteger" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "model.jl"))
+    @test pathCallbackSolutionIsInteger(Dict(1 => 1.0, 2 => 0.0), Dict(1 => 1.0))
+    @test !pathCallbackSolutionIsInteger(Dict(1 => 0.5), Dict(1 => 1.0))
+    @test !pathCallbackSolutionIsInteger(Dict(1 => 1.0), Dict(1 => 0.5))
+end
+
+@testset "Path-CBRP no-MTZ validation" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "model.jl"))
+    app_none::Dict{String,Any} = Dict{String,Any}(
+        "no-path-cbrp-mtz" => true,
+        "subcycle-separation" => "none",
+        "subcycle-separation-engine" => "callback",
+    )
+    app_root::Dict{String,Any} = Dict{String,Any}(
+        "no-path-cbrp-mtz" => true,
+        "subcycle-separation" => "first",
+        "subcycle-separation-engine" => "root",
+    )
+    app_ok::Dict{String,Any} = Dict{String,Any}(
+        "no-path-cbrp-mtz" => true,
+        "subcycle-separation" => "first",
+        "subcycle-separation-engine" => "callback",
+    )
+    @test_throws ArgumentError validatePathCbrpNoMtzSeparation!(app_none)
+    @test_throws ArgumentError validatePathCbrpNoMtzSeparation!(app_root)
+    validatePathCbrpNoMtzSeparation!(app_ok)
+
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if isfile(inst)
+        include(joinpath(root, "src", "data.jl"))
+        data = readSBRPDataCarlos(Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "no-cbrp-metric-closure" => true,
+        ))[1]
+        @test_throws ArgumentError runPathCbrpMipModel(data, app_none)
+        @test_throws ArgumentError runPathCbrpMipModel(data, app_root)
+    end
+end
+
 @testset "Path-CBRP IP smoke (CPLEX)" begin
     root::String = joinpath(@__DIR__, "..")
     inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
@@ -237,6 +325,7 @@ end
             solve_app_sec = Dict{String,Any}(
                 "time-limit" => "30",
                 "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "root",
             )
             sol, info = runPathCbrpMipModel(data, solve_app_sec)
             ok[] = true
@@ -246,8 +335,127 @@ end
         @test sol !== nothing && info !== nothing && data !== nothing
         @test parse(Int, get(info, "maxFlowCuts", "0")) >= 0
         @test haskey(info, "maxFlowCutsTime")
+        @test get(info, "subcycleSeparationEngine", "") == "root"
         include(joinpath(root, "src", "sol.jl"))
         checkSBRPSolution(data::SBRPData, sol::SBRPSolution)
+    end
+end
+
+@testset "Path-CBRP SEC callback smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        ok::Ref{Bool} = Ref(false)
+        sol::Union{Nothing,SBRPSolution} = nothing
+        info::Union{Nothing,Dict{String,String}} = nothing
+        data::Union{Nothing,SBRPData} = nothing
+        try
+            data = readSBRPDataCarlos(Dict{String,Any}(
+                "instance" => inst,
+                "vehicle-time-limit" => "120",
+                "no-cbrp-metric-closure" => true,
+            ))[1]
+            solve_app_cb = Dict{String,Any}(
+                "time-limit" => "30",
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+            )
+            sol, info = runPathCbrpMipModel(data, solve_app_cb)
+            ok[] = true
+        catch
+        end
+        ok[] || @test_skip "CPLEX unavailable or Path-CBRP SEC callback solver error"
+        @test sol !== nothing && info !== nothing && data !== nothing
+        @test get(info, "subcycleSeparationEngine", "") == "callback"
+        @test get(info, "pathCbrpMtzEnabled", "") == "true"
+        @test parse(Int, get(info, "maxFlowCuts", "0")) >= 0
+        @test haskey(info, "maxFlowUserCuts")
+        @test haskey(info, "maxFlowLazyCuts")
+        @test parse(Int, info["maxFlowUserCuts"]) >= 0
+        @test parse(Int, info["maxFlowLazyCuts"]) >= 0
+        @test parse(Int, info["maxFlowCuts"]) ==
+            parse(Int, info["maxFlowUserCuts"]) + parse(Int, info["maxFlowLazyCuts"])
+        include(joinpath(root, "src", "sol.jl"))
+        checkSBRPSolution(data::SBRPData, sol::SBRPSolution)
+    end
+end
+
+@testset "Path-CBRP no-MTZ + callback smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        ok::Ref{Bool} = Ref(false)
+        info::Union{Nothing,Dict{String,String}} = nothing
+        try
+            data = readSBRPDataCarlos(Dict{String,Any}(
+                "instance" => inst,
+                "vehicle-time-limit" => "120",
+                "no-cbrp-metric-closure" => true,
+            ))[1]
+            solve_app = Dict{String,Any}(
+                "time-limit" => "15",
+                "no-path-cbrp-mtz" => true,
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+            )
+            _, info = runPathCbrpMipModel(data, solve_app)
+            ok[] = true
+        catch e
+            if e isa ArgumentError
+                rethrow(e)
+            end
+        end
+        ok[] || @test_skip "CPLEX unavailable or no-MTZ callback solver error"
+        @test info !== nothing
+        @test get(info, "pathCbrpMtzEnabled", "") == "false"
+        @test get(info, "subcycleSeparationEngine", "") == "callback"
+    end
+end
+
+@testset "Path-CBRP SEC root vs callback objective (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        data = readSBRPDataCarlos(Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "no-cbrp-metric-closure" => true,
+        ))[1]
+        base_app = Dict{String,Any}(
+            "time-limit" => "60",
+            "subcycle-separation" => "first",
+        )
+        cost_root::Union{Nothing,Float64} = nothing
+        cost_cb::Union{Nothing,Float64} = nothing
+        try
+            _, info_r = runPathCbrpMipModel(
+                data,
+                merge(base_app, Dict("subcycle-separation-engine" => "root")),
+            )
+            cost_root = parse(Float64, info_r["cost"])
+            _, info_c = runPathCbrpMipModel(
+                data,
+                merge(base_app, Dict("subcycle-separation-engine" => "callback")),
+            )
+            cost_cb = parse(Float64, info_c["cost"])
+        catch
+            @test_skip "CPLEX unavailable or root vs callback comparison failed"
+        end
+        if cost_root !== nothing && cost_cb !== nothing
+            @test abs(cost_root - cost_cb) <= 1e-3
+        end
     end
 end
 

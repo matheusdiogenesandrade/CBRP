@@ -34,7 +34,18 @@ julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solut
 
 **Carlos sparse digraph + Path-CBRP MILP:** use `--instance-type carlos`, `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
 
-**Path-CBRP subtour elimination:** `--subcycle-separation` (`first`|`best`|`all`|`none`, default `all`) runs a pre-MIP max-flow separator that adds inequalities \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\) coupling arc tour variables with block–vertex \(y_{b,i}\). Logs include `maxFlowCuts` and `maxFlowCutsTime`. Use `none` to skip (faster, MTZ-only).
+**Path-CBRP subtour elimination:** `--subcycle-separation` (`first`|`best`|`all`|`none`, default `all`) selects which violated SECs to add per separation round. `--subcycle-separation-engine` (`root`|`callback`, default `root`) chooses the host:
+
+| Engine | Behavior |
+|--------|----------|
+| `root` | Pre-MIP LP cutting-plane loop (max-flow on relaxed `x`,`y`), then binary MIP solve |
+| `callback` | Single CPLEX generic callback: Path SECs as **user cuts** at each `RELAXATION` (fractional LP) and **lazy constraints** at integer `CANDIDATE` points (requires `--path-cbrp-mip`; can be much slower on large Carlos instances) |
+
+**Optional no MTZ:** `--no-path-cbrp-mtz` skips compact arc MTZ constraints (keeps `w` and depot bound). Requires `--path-cbrp-mip` and `--subcycle-separation-engine callback` with `--subcycle-separation` not `none` (otherwise the run errors: connectivity must come from SEC separation).
+
+Inequalities: \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Logs include `maxFlowCuts` (total), `maxFlowUserCuts`, `maxFlowLazyCuts`, `maxFlowCutsTime`, `subcycleSeparationEngine`, and `pathCbrpMtzEnabled`. Use `none` to skip SECs (faster, MTZ-only when MTZ is enabled).
+
+**Callback debug (stdout):** with `engine=callback`, each batch of submitted cuts prints as `[PathSEC] RELAXATION user: +N cuts (cum. user=…, lazy=…)` before CPLEX’s next `User` / `UserPurge2` line. Disable with `PATH_CBRP_SEC_CALLBACK_LOG=0`.
 
 Example:
 
@@ -115,8 +126,10 @@ optional arguments:
   --batch BATCH         Batch file path
   --intersection-cuts   Intersection cuts for the complete model
   --subcycle-separation SUBCYCLE-SEPARATION
-                        Subcycle separation with max-flow at the B&B
-                        root node (default: "all")
+                        Subcycle separation strategy: first|best|all|none
+                        (default: "all")
+  --subcycle-separation-engine ENGINE
+                        Path-CBRP SEC host: root|callback (default: "root")
   --y-integer           Fix the variable y, for the complete model,
                         when running the separation algorithm
   --z-integer           Fix the variable z, for the complete model,

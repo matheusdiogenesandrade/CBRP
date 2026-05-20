@@ -7,6 +7,9 @@ Mirrors the C++ `PathCBRPIP` formulation in the parent COPAlgorithms repository 
 """
 function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPSolution,Dict{String,String}}
 
+    validatePathCbrpNoMtzSeparation!(app)
+    no_path_cbrp_mtz::Bool = get(app, "no-path-cbrp-mtz", false)
+
     depot::Int = depot_node(data)
     n_clusters::Int = num_clusters(data)
     A::Arcs = Arcs(sort(collect(data.D.A); by=a -> (first(a), last(a))))
@@ -46,6 +49,10 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         "maxFlowLP" => "N/A",
         "maxFlowCuts" => "0",
         "maxFlowCutsTime" => "0",
+        "maxFlowUserCuts" => "0",
+        "maxFlowLazyCuts" => "0",
+        "subcycleSeparationEngine" => "root",
+        "pathCbrpMtzEnabled" => "true",
         "phase1Time" => "0",
         "warmStartUsed" => "false",
         "warmStartFixed" => "false",
@@ -116,26 +123,29 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
     )
         =#
 
-    # Compact arc MTZ: for each non-depot i, a ∈ δ⁺(i), a' ∈ δ⁻(i):
-    # w_{a'} >= w_a + x_a t_a - (2 - x_{a'} - x_a) T.
     Tlim::Float64 = data.T
-    for i::Int in verts_non_depot
-        for k_out::Int in get(out_idx, i, Int[])
-            ta::Float64 = arc_time(data, A[k_out])
-            for k_in::Int in get(in_idx, i, Int[])
-                c_ref = @constraint(
-                    model,
-                    w[k_in] >=
-                    w[k_out] + ta * x[k_out] - Tlim * (2 - x[k_in] - x[k_out]),
-                )
-                set_name(
-                    c_ref,
-                    "c_mtz_compact[i=$(i),ko=$(k_out),ki=$(k_in)]",
-                )
+    if !no_path_cbrp_mtz
+        # Compact arc MTZ: for each non-depot i, a ∈ δ⁺(i), a' ∈ δ⁻(i):
+        # w_{a'} >= w_a + x_a t_a - (2 - x_{a'} - x_a) T.
+        for i::Int in verts_non_depot
+            for k_out::Int in get(out_idx, i, Int[])
+                ta::Float64 = arc_time(data, A[k_out])
+                for k_in::Int in get(in_idx, i, Int[])
+                    c_ref = @constraint(
+                        model,
+                        w[k_in] >=
+                        w[k_out] + ta * x[k_out] - Tlim * (2 - x[k_in] - x[k_out]),
+                    )
+                    set_name(
+                        c_ref,
+                        "c_mtz_compact[i=$(i),ko=$(k_out),ki=$(k_in)]",
+                    )
+                end
             end
         end
     end
     @constraint(model, c_w_depot_leave_ub[k=out_depot], w[k] <= Tlim)
+    info["pathCbrpMtzEnabled"] = no_path_cbrp_mtz ? "false" : "true"
 
     fix_mode::Bool = pathCbrpFixWarmStartFlag(app)
     warm_xy = get(app, "path_cbrp_warm_xy", nothing)
@@ -173,7 +183,12 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
 
     info["phase1Time"] = string(Base.time() - phase1_wall_start)
 
-    if get(app, "subcycle-separation", "none") != "none"
+    sep_mode::String = get(app, "subcycle-separation", "none")
+    sep_engine::String = get(app, "subcycle-separation-engine", "root")
+    info["subcycleSeparationEngine"] = sep_engine
+    callback_stats::Union{PathSubtourCallbackStats,Nothing} = nothing
+
+    if sep_mode != "none" && sep_engine == "root"
         unsetBinary(values(x))
         unsetBinary(values(y))
         sep_start::Float64 = Base.time()
@@ -184,9 +199,32 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         info["maxFlowCuts"] = string(length(path_subtour_cuts))
         setBinary(values(x))
         setBinary(values(y))
+    elseif sep_mode != "none" && sep_engine == "callback"
+        _set_cplex_threads!(model, 1)
+        ctx::PathSubtourSepContext =
+            buildPathSubtourSepContext(data, model, app, A, y_meta, out_idx, depot)
+        callback_stats = PathSubtourCallbackStats(0, 0, 0.0)
+        registerPathSubtourSeparationCallback!(model, ctx, callback_stats)
     end
 
     info["solverTime"] = string(@elapsed optimize!(model))
+
+    if callback_stats !== nothing
+        info["maxFlowCuts"] =
+            string(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts)
+        info["maxFlowUserCuts"] = string(callback_stats.n_user_cuts)
+        info["maxFlowLazyCuts"] = string(callback_stats.n_lazy_cuts)
+        info["maxFlowCutsTime"] = string(callback_stats.sep_time)
+        if get(ENV, "PATH_CBRP_SEC_CALLBACK_LOG", "1") != "0"
+            println(
+                "[PathSEC] solve done: submitted user=$(callback_stats.n_user_cuts) " *
+                "lazy=$(callback_stats.n_lazy_cuts) " *
+                "total=$(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts) " *
+                "sep_time=$(callback_stats.sep_time)s",
+            )
+            flush(stdout)
+        end
+    end
 
     if !has_values(model)
         info["cost"] = "0.00"

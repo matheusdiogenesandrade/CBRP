@@ -57,9 +57,11 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         help = "Intersection cuts for the complete model"
         action = :store_true
         "--subcycle-separation"
-        help = "Strategy (first|best|all|none)"
-        help = "Subcycle separation with max-flow at the B&B root node"
+        help = "Subcycle separation strategy: first|best|all|none (Path-CBRP and complete model)"
         default = "all"
+        "--subcycle-separation-engine"
+        help = "Path-CBRP SEC host: root = pre-MIP LP loop; callback = user+lazy SEC at B&C"
+        default = "root"
         "--y-integer"
         help = "Fix the variable y, for the complete model, when running the separation algorithm"
         action = :store_true
@@ -78,6 +80,9 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--path-cbrp-mip"
         help = "Carlos + IP: arc-indexed Path-CBRP MILP (requires --no-cbrp-metric-closure)"
         action = :store_true
+        "--no-path-cbrp-mtz"
+        help = "Path-CBRP: skip compact arc MTZ (requires --path-cbrp-mip and callback SEC separation)"
+        action = :store_true
         "--path-cbrp-warm-sol"
         help = "Carlos Path-CBRP: warm-start solution file (BRKGA .sol or path-cbrp-mtz article .txt)"
         arg_type = String
@@ -94,7 +99,7 @@ end
 # log function
 function log(app::Dict{String,Any}, info::Dict{String,String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty=false))
     info["instance"] = first(split(info["instance"], "."; keepempty=false))
@@ -407,6 +412,24 @@ function run(app::Dict{String,Any})
         app["ip"] || error("--path-cbrp-mip requires --ip")
         app["no-cbrp-metric-closure"] || error("--path-cbrp-mip requires --no-cbrp-metric-closure")
         app["brkga"] && error("--path-cbrp-mip cannot be combined with --brkga")
+    end
+
+    sep_engine::String = String(strip(String(get(app, "subcycle-separation-engine", "root"))))
+    sep_engine in ("root", "callback") ||
+        error("--subcycle-separation-engine must be root or callback (got $(repr(sep_engine)))")
+    if sep_engine == "callback" && !app["path-cbrp-mip"]
+        error("--subcycle-separation-engine callback requires --path-cbrp-mip")
+    end
+
+    if get(app, "no-path-cbrp-mtz", false)
+        app["path-cbrp-mip"] || error("--no-path-cbrp-mtz requires --path-cbrp-mip")
+        sep_mode_chk::String = String(strip(String(get(app, "subcycle-separation", "none"))))
+        if sep_mode_chk == "none" || sep_engine != "callback"
+            error(
+                "--no-path-cbrp-mtz requires Path SEC callback separation " *
+                "(use e.g. --subcycle-separation first --subcycle-separation-engine callback)",
+            )
+        end
     end
 
     warm_sol_path::String = String(strip(String(get(app, "path-cbrp-warm-sol", ""))))

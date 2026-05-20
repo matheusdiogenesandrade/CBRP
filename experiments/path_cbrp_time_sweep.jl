@@ -59,6 +59,13 @@ function parse_cli()::Union{Nothing,Dict{String,Any}}
         help = "Path SEC max-flow separation: first|best|all|none (default all, same as src/run.jl)"
         arg_type = String
         default = "all"
+        "--subcycle-separation-engine"
+        help = "Path-CBRP SEC host: root|callback (default root, same as src/run.jl)"
+        arg_type = String
+        default = "root"
+        "--no-path-cbrp-mtz"
+        help = "Skip compact arc MTZ (requires callback SEC; same as src/run.jl)"
+        action = :store_true
     end
     return parse_args(ARGS, s)
 end
@@ -93,6 +100,10 @@ function write_result_row(
         csv_escape(get_info_str(info, "phase1Time")),
         csv_escape(get_info_str(info, "maxFlowCuts")),
         csv_escape(get_info_str(info, "maxFlowCutsTime")),
+        csv_escape(get_info_str(info, "maxFlowUserCuts")),
+        csv_escape(get_info_str(info, "maxFlowLazyCuts")),
+        csv_escape(get_info_str(info, "subcycleSeparationEngine")),
+        csv_escape(get_info_str(info, "pathCbrpMtzEnabled")),
         csv_escape(get_info_str(info, "noFeasibleSolution")),
         csv_escape(error_message),
     ]
@@ -119,6 +130,16 @@ function main()::Cint
     subcycle::String = app["subcycle-separation"]
     if !(subcycle in ("first", "best", "all", "none"))
         println(stderr, "error: --subcycle-separation must be one of first|best|all|none")
+        return Cint(2)
+    end
+    subcycle_engine::String = app["subcycle-separation-engine"]
+    if !(subcycle_engine in ("root", "callback"))
+        println(stderr, "error: --subcycle-separation-engine must be root or callback")
+        return Cint(2)
+    end
+    no_path_cbrp_mtz::Bool = get(app, "no-path-cbrp-mtz", false)
+    if no_path_cbrp_mtz && (subcycle == "none" || subcycle_engine != "callback")
+        println(stderr, "error: --no-path-cbrp-mtz requires --subcycle-separation != none and --subcycle-separation-engine callback")
         return Cint(2)
     end
 
@@ -154,6 +175,8 @@ function main()::Cint
     solve_app = Dict{String,Any}(
         "time-limit" => time_limit_str,
         "subcycle-separation" => subcycle,
+        "subcycle-separation-engine" => subcycle_engine,
+        "no-path-cbrp-mtz" => no_path_cbrp_mtz,
     )
 
     io = open(out_csv, "w")
@@ -173,6 +196,10 @@ function main()::Cint
             "phase1Time",
             "maxFlowCuts",
             "maxFlowCutsTime",
+            "maxFlowUserCuts",
+            "maxFlowLazyCuts",
+            "subcycleSeparationEngine",
+            "pathCbrpMtzEnabled",
             "noFeasibleSolution",
             "error_message",
         ]
