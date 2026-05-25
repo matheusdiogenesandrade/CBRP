@@ -1,21 +1,21 @@
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2015.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2016.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2017.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2018.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2019.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2020.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-1000-2021.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2015.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2016.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2017.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2018.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2019.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2020.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-2000-2021.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2015.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2016.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2017.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2018.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2019.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2020.txt --intersection-cuts --ip --instance-type carlos
-data/carlos/notified-limoeiro/notified-limoeiro-3000-2021.txt --intersection-cuts --ip --instance-type carlos
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2015.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2016.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2017.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2018.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2019.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2020.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-1000-2021.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2015.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2016.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2017.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2018.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2019.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2020.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-2000-2021.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2015.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2016.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2017.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2018.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2019.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2020.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
+data/carlos/notified-limoeiro/notified-limoeiro-3000-2021.txt --intersection-cuts --ip --instance-type carlos --vehicle-time-limit 120 --time-limit 3600 --subcycle-separation all --subcycle-separation-engine callback --out solutions/complete/notified-limoeiro-1000-2015
