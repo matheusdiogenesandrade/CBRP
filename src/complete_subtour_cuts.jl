@@ -20,6 +20,17 @@ function validateCompleteSubtourSeparation!(app::Dict{String,Any})::Nothing
     return nothing
 end
 
+"""
+Re-enable CPLEX presolve and automatic LP method for the final MIP after cut separation
+(`getSubtourCuts` sets primal-dual LP and disables presolve during the LP separation loop).
+"""
+function restoreCompleteMipPreprocessor!(model::Model)::Nothing
+    set_optimizer_attribute(model, "CPXPARAM_LPMethod", 0)
+    set_optimizer_attribute(model, "CPXPARAM_Preprocessing_Presolve", 1)
+    set_optimizer_attribute(model, "CPXPARAM_Preprocessing_Aggregator", -1)
+    return nothing
+end
+
 """Static data for complete-digraph max-flow subtour separation (root loop or callback)."""
 struct CompleteSubtourSepContext
     model::Model

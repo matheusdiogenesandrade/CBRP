@@ -114,14 +114,12 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         sum(x[j] for j in get(out_idx, y_meta[k][2], Int[]); init=0.0) >= y[k],
     )
 
-    #=
     @constraint(
         model,
         c_global_time_budget,
         sum(k -> arc_time(data, A[k]) * x[k], 1:na) +
         sum(k -> service_time(data, y_meta[k][1]) * y[k], 1:ny) <= data.T,
     )
-        =#
 
     Tlim::Float64 = data.T
     if !no_path_cbrp_mtz

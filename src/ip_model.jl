@@ -537,6 +537,7 @@ function runCOPCompleteDigraphIPModel(
 
             info["maxFlowCutsTime"] = string(@elapsed begin
                 new_subtour_cuts = getSubtourCuts(data, model, app, info)
+                restoreCompleteMipPreprocessor!(model)
             end)
             info["maxFlowCuts"] = string(length(new_subtour_cuts))
             optimize!(model)
