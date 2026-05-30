@@ -1,0 +1,187 @@
+Version identifier: 22.1.1.0 | 2022-11-28 | 9160aff4d
+CPXPARAM_Threads                                 1
+CPXPARAM_TimeLimit                               20000
+Generic callback                                 0x60
+Tried aggregator 2 times.
+MIP Presolve eliminated 904 rows and 0 columns.
+MIP Presolve modified 688 coefficients.
+Aggregator did 172 substitutions.
+Reduced MIP has 21360 rows, 11415 columns, and 92213 nonzeros.
+Reduced MIP has 5869 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.04 sec. (31.62 ticks)
+Found incumbent of value 0.000000 after 0.47 sec. (72.20 ticks)
+Probing time = 0.01 sec. (11.58 ticks)
+Tried aggregator 1 time.
+Reduced MIP has 21360 rows, 11415 columns, and 92213 nonzeros.
+Reduced MIP has 5869 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.03 sec. (23.77 ticks)
+Probing time = 0.01 sec. (9.65 ticks)
+Clique table members: 1802.
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: none, using 1 thread.
+Root relaxation solution time = 0.07 sec. (65.27 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                            0.0000    58769.0000              --- 
+      0     0    11581.0000   405        0.0000    11581.0000     1063     --- 
+*     0+    0                            4.0000    11581.0000              --- 
+[PathSEC] RELAXATION user: +48655 cuts (cum. user=48655, lazy=0)
+      0     0    11581.0000   488        4.0000    Cuts: 3370     1782     --- 
+[PathSEC] RELAXATION user: +127314 cuts (cum. user=175969, lazy=0)
+      0     0    11581.0000   490        4.0000    Cuts: 1452     2830     --- 
+[PathSEC] RELAXATION user: +122137 cuts (cum. user=298106, lazy=0)
+      0     0    11581.0000   469        4.0000 UserPurge2: 684     3367     --- 
+[PathSEC] RELAXATION user: +130375 cuts (cum. user=428481, lazy=0)
+      0     0    11581.0000   614        4.0000 UserPurge2: 42     4236     --- 
+[PathSEC] RELAXATION user: +102877 cuts (cum. user=531358, lazy=0)
+      0     0    11581.0000   408        4.0000 UserPurge2: 11     4573     --- 
+[PathSEC] RELAXATION user: +62858 cuts (cum. user=594216, lazy=0)
+      0     0    11581.0000   539        4.0000 UserPurge2: 20     5496     --- 
+[PathSEC] RELAXATION user: +66464 cuts (cum. user=660680, lazy=0)
+      0     0    11581.0000   451        4.0000 UserPurge2: 8     6025     --- 
+[PathSEC] RELAXATION user: +100532 cuts (cum. user=761212, lazy=0)
+      0     0    11581.0000   552        4.0000 UserPurge2: 116     6544     --- 
+[PathSEC] RELAXATION user: +84372 cuts (cum. user=845584, lazy=0)
+      0     0    11581.0000   468        4.0000 UserPurge2: 9     7116     --- 
+[PathSEC] RELAXATION user: +62944 cuts (cum. user=908528, lazy=0)
+      0     0    11581.0000   443        4.0000 UserPurge2: 10     7281     --- 
+[PathSEC] RELAXATION user: +40366 cuts (cum. user=948894, lazy=0)
+      0     0    11581.0000   493        4.0000 UserPurge2: 322     7573     --- 
+[PathSEC] RELAXATION user: +23039 cuts (cum. user=971933, lazy=0)
+      0     0    11581.0000   301        4.0000 UserPurge2: 3     7627     --- 
+[PathSEC] RELAXATION user: +51247 cuts (cum. user=1023180, lazy=0)
+      0     0    11581.0000   326        4.0000 UserPurge2: 7     7788     --- 
+*     0+    0                        10124.0000    11581.0000            14.39%
+      0     0        cutoff          10124.0000    11581.0000     7788   14.39%
+[PathSEC] RELAXATION user: +37730 cuts (cum. user=1060910, lazy=0)
+      0     0    11581.0000   305    10124.0000 UserPurge2: 11     7825   14.39%
+[PathSEC] RELAXATION user: +71331 cuts (cum. user=1132241, lazy=0)
+      0     0    11581.0000   364    10124.0000 UserPurge2: 15     7915   14.39%
+[PathSEC] RELAXATION user: +40377 cuts (cum. user=1172618, lazy=0)
+      0     0    11581.0000   319    10124.0000 UserPurge2: 2     8045   14.39%
+*     0+    0                        10873.0000    11581.0000             6.51%
+      0     0        cutoff          10873.0000    11581.0000     8045    6.51%
+[PathSEC] RELAXATION user: +48611 cuts (cum. user=1221229, lazy=0)
+      0     0    11581.0000   356    10873.0000 UserPurge2: 261     8285    6.51%
+[PathSEC] RELAXATION user: +35473 cuts (cum. user=1256702, lazy=0)
+      0     0    11581.0000   275    10873.0000 UserPurge2: 2     8322    6.51%
+[PathSEC] RELAXATION user: +58204 cuts (cum. user=1314906, lazy=0)
+      0     0    11581.0000   389    10873.0000 UserPurge2: 107     8585    6.51%
+[PathSEC] RELAXATION user: +42472 cuts (cum. user=1357378, lazy=0)
+      0     0    11581.0000   351    10873.0000 UserPurge2: 2     8735    6.51%
+[PathSEC] RELAXATION user: +30078 cuts (cum. user=1387456, lazy=0)
+      0     0    11581.0000   355    10873.0000 UserPurge2: 10     8859    6.51%
+[PathSEC] RELAXATION user: +21194 cuts (cum. user=1408650, lazy=0)
+      0     0    11581.0000   311    10873.0000 UserPurge2: 4     8876    6.51%
+*     0+    0                        10881.0000    11581.0000             6.43%
+      0     0        cutoff          10881.0000    11581.0000     8876    6.43%
+[PathSEC] RELAXATION user: +23777 cuts (cum. user=1432427, lazy=0)
+      0     0    11581.0000   289    10881.0000 UserPurge2: 3     8962    6.43%
+[PathSEC] RELAXATION user: +25910 cuts (cum. user=1458337, lazy=0)
+      0     0    11581.0000   382    10881.0000 UserPurge2: 2     9004    6.43%
+[PathSEC] RELAXATION user: +25271 cuts (cum. user=1483608, lazy=0)
+[PathSEC] RELAXATION user: +29265 cuts (cum. user=1512873, lazy=0)
+      0     0    11581.0000   495    10881.0000 UserPurge2: 3     9601    6.43%
+[PathSEC] RELAXATION user: +40270 cuts (cum. user=1553143, lazy=0)
+      0     0    11581.0000   449    10881.0000 UserPurge2: 6     9886    6.43%
+[PathSEC] RELAXATION user: +20360 cuts (cum. user=1573503, lazy=0)
+      0     0    11581.0000   670    10881.0000 UserPurge2: 145    10234    6.43%
+[PathSEC] RELAXATION user: +14815 cuts (cum. user=1588318, lazy=0)
+      0     0    11581.0000   271    10881.0000 UserPurge2: 2    10275    6.43%
+[PathSEC] RELAXATION user: +43866 cuts (cum. user=1632184, lazy=0)
+      0     0    11581.0000   278    10881.0000 UserPurge2: 4    10300    6.43%
+[PathSEC] RELAXATION user: +40562 cuts (cum. user=1672746, lazy=0)
+[PathSEC] RELAXATION user: +40562 cuts (cum. user=1713308, lazy=0)
+      0     2    11581.0000   278    10881.0000    11581.0000    10300    6.43%
+Elapsed time = 1883.42 sec. (57126.74 ticks, tree = 0.01 MB, solutions = 5)
+[PathSEC] RELAXATION user: +41515 cuts (cum. user=1754823, lazy=0)
+[PathSEC] RELAXATION user: +44262 cuts (cum. user=1799085, lazy=0)
+[PathSEC] RELAXATION user: +20870 cuts (cum. user=1819955, lazy=0)
+[PathSEC] RELAXATION user: +20370 cuts (cum. user=1840325, lazy=0)
+[PathSEC] RELAXATION user: +18366 cuts (cum. user=1858691, lazy=0)
+[PathSEC] RELAXATION user: +18458 cuts (cum. user=1877149, lazy=0)
+[PathSEC] RELAXATION user: +18466 cuts (cum. user=1895615, lazy=0)
+[PathSEC] RELAXATION user: +18552 cuts (cum. user=1914167, lazy=0)
+[PathSEC] RELAXATION user: +18883 cuts (cum. user=1933050, lazy=0)
+[PathSEC] RELAXATION user: +18790 cuts (cum. user=1951840, lazy=0)
+[PathSEC] RELAXATION user: +18885 cuts (cum. user=1970725, lazy=0)
+[PathSEC] RELAXATION user: +18790 cuts (cum. user=1989515, lazy=0)
+[PathSEC] RELAXATION user: +19077 cuts (cum. user=2008592, lazy=0)
+[PathSEC] RELAXATION user: +18778 cuts (cum. user=2027370, lazy=0)
+[PathSEC] RELAXATION user: +18590 cuts (cum. user=2045960, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2064083, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2082206, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2100329, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2118452, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2136575, lazy=0)
+[PathSEC] RELAXATION user: +18123 cuts (cum. user=2154698, lazy=0)
+[PathSEC] RELAXATION user: +19126 cuts (cum. user=2173824, lazy=0)
+[PathSEC] RELAXATION user: +18564 cuts (cum. user=2192388, lazy=0)
+[PathSEC] RELAXATION user: +19219 cuts (cum. user=2211607, lazy=0)
+[PathSEC] RELAXATION user: +18564 cuts (cum. user=2230171, lazy=0)
+[PathSEC] RELAXATION user: +18752 cuts (cum. user=2248923, lazy=0)
+[PathSEC] RELAXATION user: +19120 cuts (cum. user=2268043, lazy=0)
+[PathSEC] RELAXATION user: +18841 cuts (cum. user=2286884, lazy=0)
+[PathSEC] RELAXATION user: +18841 cuts (cum. user=2305725, lazy=0)
+[PathSEC] RELAXATION user: +18406 cuts (cum. user=2324131, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2342694, lazy=0)
+[PathSEC] RELAXATION user: +19200 cuts (cum. user=2361894, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2380457, lazy=0)
+[PathSEC] RELAXATION user: +18653 cuts (cum. user=2399110, lazy=0)
+[PathSEC] RELAXATION user: +18653 cuts (cum. user=2417763, lazy=0)
+[PathSEC] RELAXATION user: +18576 cuts (cum. user=2436339, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2454902, lazy=0)
+[PathSEC] RELAXATION user: +19200 cuts (cum. user=2474102, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2492665, lazy=0)
+[PathSEC] RELAXATION user: +18653 cuts (cum. user=2511318, lazy=0)
+[PathSEC] RELAXATION user: +18653 cuts (cum. user=2529971, lazy=0)
+[PathSEC] RELAXATION user: +18481 cuts (cum. user=2548452, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2567015, lazy=0)
+[PathSEC] RELAXATION user: +19200 cuts (cum. user=2586215, lazy=0)
+[PathSEC] RELAXATION user: +18563 cuts (cum. user=2604778, lazy=0)
+[PathSEC] RELAXATION user: +18653 cuts (cum. user=2623431, lazy=0)
+[PathSEC] RELAXATION user: +18841 cuts (cum. user=2642272, lazy=0)
+[PathSEC] RELAXATION user: +18612 cuts (cum. user=2660884, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2678905, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2697059, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2715080, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2733234, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2751255, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2769409, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2787430, lazy=0)
+[PathSEC] RELAXATION user: +17968 cuts (cum. user=2805398, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2823419, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2841573, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2859594, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2877748, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2895769, lazy=0)
+[PathSEC] RELAXATION user: +18154 cuts (cum. user=2913923, lazy=0)
+[PathSEC] RELAXATION user: +18021 cuts (cum. user=2931944, lazy=0)
+[PathSEC] RELAXATION user: +19458 cuts (cum. user=2951402, lazy=0)
+[PathSEC] RELAXATION user: +19186 cuts (cum. user=2970588, lazy=0)
+      1     3    11581.0000   337    10881.0000    11581.0000    11458    6.43%
+[PathSEC] RELAXATION user: +50437 cuts (cum. user=3021025, lazy=0)
+[PathSEC] RELAXATION user: +62346 cuts (cum. user=3083371, lazy=0)
+[PathSEC] RELAXATION user: +73931 cuts (cum. user=3157302, lazy=0)
+[PathSEC] RELAXATION user: +92690 cuts (cum. user=3249992, lazy=0)
+[PathSEC] RELAXATION user: +83718 cuts (cum. user=3333710, lazy=0)
+[PathSEC] RELAXATION user: +129076 cuts (cum. user=3462786, lazy=0)
+[PathSEC] RELAXATION user: +80761 cuts (cum. user=3543547, lazy=0)
+[PathSEC] solve done: submitted user=3543547 lazy=0 total=3543547 sep_time=5001.047184493999s
+instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,zLP,zLPTime,wLP,wLPTime,maxFlowLP,maxFlowCuts,maxFlowCutsTime,maxFlowUserCuts,maxFlowLazyCuts,subcycleSeparationEngine,pathCbrpMtzEnabled,cost,bestBound,solverTime,relativeGAP,nodeCount,phase1Time,meters,tourMinutes,blocksMeters,numVisitedBlocks,intersectionCutsTime,intersectionCuts1,intersectionCuts2
+notified-limoeiro-3000-2021,1213,5546,103,120.0,PathCBRPIP,N/A,N/A,0,N/A,0,N/A,0,N/A,3543547,5001.047184493999,3543547,0,callback,true,10881.00,11581.00,20010.798013215,0.06433232239683793,2,1.4805529117584229,15317.239999999996,205.95384000000007,30496.33,60,0,0,0
+
+Clique cuts applied:  2
+Zero-half cuts applied:  1
+Gomory fractional cuts applied:  1
+User cuts applied:  1013383
+
+Root node processing (before b&c):
+  Real time             = 1889.07 sec. (58783.03 ticks)
+Sequential b&c:
+  Real time             = 18121.44 sec. (7418557.17 ticks)
+                          ------------
+Total (root+branch&cut) = 20010.51 sec. (7477340.20 ticks)

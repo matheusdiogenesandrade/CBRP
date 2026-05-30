@@ -51,7 +51,7 @@ Inequalities: \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Log
 
 | Engine | Behavior |
 |--------|----------|
-| `root` (default) | Pre-MIP `getSubtourCuts` LP loop (max-flow on `x`,`z`,`w`), static inequalities added to the model, then binary MIP |
+| `root` (default) | Pre-MIP `getSubtourCuts` LP loop (max-flow on `x`,`z`,`w`), static inequalities added to the model, then `restoreCompleteMipPreprocessor!` (automatic LP + presolve) before binary MIP |
 | `callback` | No pre-MIP subtour loop; CPLEX callback with user cuts at `RELAXATION` and lazy cuts at integer `CANDIDATE` (same CPLEX.jl pattern as Path-CBRP) |
 
 Cut template: \(\sum_{a \in \delta^{+}(S)} x_a \ge \sum_{a \in \delta^{+}(\{source,target\})} x_a - 1\) (see `findViolatedCompleteSubtourCuts`). Pooled cuts (`--reuse-cuts`) are still seeded as static rows before the MIP when using `callback`. Debug log prefix: `[CompleteSEC]`; disable with `COMPLETE_SEC_CALLBACK_LOG=0`. Prefer `--subcycle-separation first` for large metric-closure instances.
