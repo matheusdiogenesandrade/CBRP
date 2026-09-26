@@ -42,3 +42,4 @@ v⁺(A::Arcs, i::Int)::Vi = map((i, j)::Arc -> j, δ⁺(A, i))
 v⁻(A::Arcs, i::Int)::Vi = map((i, j)::Arc -> i, δ⁻(A, i))
 
 include("sbrp.jl")
+include("simplify_street_graph.jl")

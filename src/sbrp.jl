@@ -579,11 +579,10 @@ Create a SBRP instance from a Matheus's instance
 input:
 - app::Dict{String, Any} is the paramenters relation
 output:
-- data´::SBRPData is the SBRP instance
-- paths´::Dict{Arc, Vi} is the relation of paths
-- distances::ArcCostMap is the original arc distances relationship
+- `data`: sparse street digraph if `no-cbrp-metric-closure`; otherwise compact metric-complete digraph (`data′`).
+- `paths` / `street_distances`: populated iff metric closure ran; used to expand a compact IP tour back to street vertices.
 =#
-function readSBRPData(app::Dict{String,Any})::Tuple{SBRPData,Dict{Arc,Vi},ArcCostMap}
+function readSBRPData(app::Dict{String,Any})::Tuple{SBRPData,Union{Dict{Arc,Vi},Nothing},Union{ArcCostMap,Nothing}}
 
     @debug "Reading Matheus's instance"
 
@@ -662,6 +661,9 @@ function readSBRPData(app::Dict{String,Any})::Tuple{SBRPData,Dict{Arc,Vi},ArcCos
     # dummy weights
     addDummyArcs(data)
 
+    # refresh A so depot dummy arcs are visible to Path-CBRP / shortest paths
+    data.D.A = collect(keys(data.D.distance))
+
     if get(app, "drop-zero-profit-blocks", false)
         dropZeroProfitBlocks!(data)
     end
@@ -675,6 +677,11 @@ function readSBRPData(app::Dict{String,Any})::Tuple{SBRPData,Dict{Arc,Vi},ArcCos
 
     if any(a::Arc -> !in(a, keys(distances)), χ(Vb))
         throw(InvalidStateException("The SBRP instance it is not connected"))
+    end
+
+    if get(app, "no-cbrp-metric-closure", false)
+        @debug "Skipping metric closure (sparse Matheus digraph)"
+        return data, nothing, nothing
     end
 
     # compact in complete graph

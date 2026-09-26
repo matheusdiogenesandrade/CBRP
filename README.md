@@ -32,7 +32,26 @@ Inside the runner, `WORKDIR` is the staged Julia project. Example solves (same a
 julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solutions/complete_smoke --intersection-cuts --ip
 ```
 
-**Carlos sparse digraph + Path-CBRP MILP:** use `--instance-type carlos`, `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
+**Sparse digraph + Path-CBRP MILP:** use `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Works for **Campinas (Matheus)** (default `--instance-type matheus`) and **Carlos** (`--instance-type carlos`). Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
+
+Campinas Path batches:
+
+| Batch | Flags | Notes |
+|-------|--------|--------|
+| `batchs/campinas-*/path_cbrp_no_warm.batch` | Path, no simplify, default SEC **root** | Baseline sparse Path |
+| `batchs/campinas-*/path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** | Recommended Campinas campaign (8×80) |
+
+Run all eight simp+callback groups (from this directory):
+
+```sh
+bash run_campinas_path_simp_callback.sh
+# or a subset:
+bash run_campinas_path_simp_callback.sh campinas-random campinas-sparse
+```
+
+Logs go to `logs/path_simp_callback_<group>.log`. Extract CSV summaries with `grep -A1 '^instance,' logs/path_simp_callback_*.log`. Set `JULIA_THREADS` (default 1) and `PATH_CBRP_SEC_CALLBACK_LOG=0` (default in the script) as needed. Prefer **callback** over **root** when using street-graph simplification: the root LP cut loop can fail to terminate on some simplified Campinas instances.
+
+**Street digraph simplification** (`--simplify-street-graph`): OSMnx-style topological contraction of interstitial (mostly degree-2) corridors on the **sparse** street digraph before Path (or `--nosolve`). Requires `--no-cbrp-metric-closure`. Depot and every block-member node are forced endpoints so block lists and Path service vertices are preserved; contracted corridor length is the sum of segment lengths. Carlos AS/LN files were typically generated with Python OSMnx `simplify_graph` already, so the flag mainly helps Campinas Matheus Path. Logs `|V|` / `|A|` before → after.
 
 **Path-CBRP subtour elimination:** `--subcycle-separation` (`first`|`best`|`all`|`none`, default `all`) selects which violated SECs to add per separation round. `--subcycle-separation-engine` (`root`|`callback`, default `root`) chooses the host:
 
@@ -56,13 +75,25 @@ Inequalities: \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Log
 
 Cut template: \(\sum_{a \in \delta^{+}(S)} x_a \ge \sum_{a \in \delta^{+}(\{source,target\})} x_a - 1\) (see `findViolatedCompleteSubtourCuts`). Pooled cuts (`--reuse-cuts`) are still seeded as static rows before the MIP when using `callback`. Debug log prefix: `[CompleteSEC]`; disable with `COMPLETE_SEC_CALLBACK_LOG=0`. Prefer `--subcycle-separation first` for large metric-closure instances.
 
-Example:
+Examples:
 
 ```sh
+# Carlos Path smoke
 julia --threads=1 --project=. src/run.jl data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt --instance-type carlos --ip --no-cbrp-metric-closure --path-cbrp-mip --out solutions/pcbrp_smoke --time-limit 60
+
+# Campinas (Matheus) Path smoke
+julia --threads=1 --project=. src/run.jl data/campinas-random/1.sbrp \
+  --ip --no-cbrp-metric-closure --path-cbrp-mip \
+  --out solutions/pcbrp_campinas_smoke --time-limit 60
+
+# Campinas Path with street-graph simplification + SEC callback
+julia --threads=1 --project=. src/run.jl data/campinas-random/1.sbrp \
+  --ip --no-cbrp-metric-closure --path-cbrp-mip --simplify-street-graph \
+  --subcycle-separation-engine callback \
+  --out solutions/pcbrp_simp_smoke --time-limit 60
 ```
 
-**Path-CBRP MIP warm start** (`--path-cbrp-warm-sol PATH`, `--path-cbrp-warm-sol-format`): optional hints before the Path MILP solve. Formats:
+**Path-CBRP MIP warm start** (`--path-cbrp-warm-sol PATH`, `--path-cbrp-warm-sol-format`): optional hints before the Path MILP solve (**Carlos only**). Formats:
 
 | Format | Flag | File |
 |--------|------|------|

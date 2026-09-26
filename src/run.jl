@@ -72,13 +72,16 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         help = "Fix the variable w, for the complete model, when running the separation algorithm"
         action = :store_true
         "--no-cbrp-metric-closure"
-        help = "Carlos: skip Floyd–Warshall metric closure; keep sparse street digraph (pair with Path-CBRP IP)"
+        help = "Skip Floyd–Warshall metric closure; keep sparse street digraph (Matheus or Carlos; pair with Path-CBRP IP)"
         action = :store_true
         "--drop-zero-profit-blocks"
         help = "Remove blocks with profit exactly 0 before metric closure / complete digraph (Carlos and Matheus readers)"
         action = :store_true
         "--path-cbrp-mip"
-        help = "Carlos + IP: arc-indexed Path-CBRP MILP (requires --no-cbrp-metric-closure)"
+        help = "Arc-indexed Path-CBRP MILP (Matheus or Carlos; requires --ip and --no-cbrp-metric-closure)"
+        action = :store_true
+        "--simplify-street-graph"
+        help = "OSMnx-style street digraph contraction before solve (requires --no-cbrp-metric-closure; keeps depot + block nodes)"
         action = :store_true
         "--no-path-cbrp-mtz"
         help = "Path-CBRP: skip compact arc MTZ (requires --path-cbrp-mip and callback SEC separation)"
@@ -408,10 +411,16 @@ function run(app::Dict{String,Any})
     end
 
     if app["path-cbrp-mip"]
-        app["instance-type"] == "carlos" || error("--path-cbrp-mip requires --instance-type carlos")
+        app["instance-type"] in ("matheus", "carlos") ||
+            error("--path-cbrp-mip requires --instance-type matheus or carlos")
         app["ip"] || error("--path-cbrp-mip requires --ip")
         app["no-cbrp-metric-closure"] || error("--path-cbrp-mip requires --no-cbrp-metric-closure")
         app["brkga"] && error("--path-cbrp-mip cannot be combined with --brkga")
+    end
+
+    if get(app, "simplify-street-graph", false)
+        app["no-cbrp-metric-closure"] ||
+            error("--simplify-street-graph requires --no-cbrp-metric-closure")
     end
 
     sep_engine::String = String(strip(String(get(app, "subcycle-separation-engine", "root"))))
@@ -463,6 +472,15 @@ function run(app::Dict{String,Any})
     @info "|B| = $(length(data.B))"
     @info "|V| = $(length(data.D.V))"
     @info "|A| = $(length(data.D.A))"
+
+    if get(app, "simplify-street-graph", false)
+        stats = simplifyStreetDigraph!(data)
+        @info "Simplified street digraph: |V| $(stats.nodes_before) → $(stats.nodes_after), |A| $(stats.arcs_before) → $(stats.arcs_after)"
+        println(
+            "Simplified street digraph: |V| $(stats.nodes_before) → $(stats.nodes_after), |A| $(stats.arcs_before) → $(stats.arcs_after)",
+        )
+        flush(stdout)
+    end
 
     # set vehicle time limit
     data.T = parse(Int, app["vehicle-time-limit"])

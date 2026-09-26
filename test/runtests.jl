@@ -91,6 +91,142 @@ end
     end
 end
 
+@testset "Matheus sparse reader vs metric closure" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "campinas-random", "1.sbrp")
+    if !isfile(inst)
+        @test_skip "Campinas fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        app_dense = Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "no-cbrp-metric-closure" => false,
+            "cluster-size-profits" => false,
+            "unitary-profits" => false,
+        )
+        app_sparse = Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "no-cbrp-metric-closure" => true,
+            "cluster-size-profits" => false,
+            "unitary-profits" => false,
+        )
+        data_dense, paths_dense, dist_dense = readSBRPData(app_dense)
+        data_sparse, paths_sparse, dist_sparse = readSBRPData(app_sparse)
+        @test paths_dense !== nothing && dist_dense !== nothing
+        @test paths_sparse === nothing && dist_sparse === nothing
+        @test length(data_dense.D.A) > 0
+        @test length(data_sparse.D.A) > 0
+        @test length(data_dense.D.A) != length(data_sparse.D.A)
+        @test length(data_dense.B) == length(data_sparse.B)
+        @test length(data_dense.D.V) == length(getBlocksNodes(data_dense)) + 1
+        @test length(data_dense.D.V) < length(data_sparse.D.V)
+        depot::Int = data_sparse.depot
+        @test any(a::Arc -> a.first == depot, data_sparse.D.A)
+        @test any(a::Arc -> a.second == depot, data_sparse.D.A)
+    end
+end
+
+@testset "simplifyStreetDigraph! toy chain" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+
+    # One-way 1 → 2 → 3 → 4; keep {1,4} via empty blocks + depot=1 and block node 4
+    b4::Vi = Vi([4])
+    data::SBRPData = SBRPData(
+        InputDigraph(
+            Dict{Int,Vertex}(
+                1 => Vertex(1, 0.0, 0.0),
+                2 => Vertex(2, 1.0, 0.0),
+                3 => Vertex(3, 2.0, 0.0),
+                4 => Vertex(4, 3.0, 0.0),
+            ),
+            Arcs([Arc(1, 2), Arc(2, 3), Arc(3, 4)]),
+            ArcCostMap(Arc(1, 2) => 1.0, Arc(2, 3) => 1.0, Arc(3, 4) => 1.0),
+        ),
+        1,
+        VVi([b4]),
+        120.0,
+        Dict{Vi,Float64}(b4 => 1.0),
+    )
+    stats = simplifyStreetDigraph!(data)
+    @test stats.nodes_before == 4
+    @test stats.nodes_after == 2
+    @test Set(keys(data.D.V)) == Set([1, 4])
+    @test haskey(data.D.distance, Arc(1, 4))
+    @test data.D.distance[Arc(1, 4)] ≈ 3.0
+    @test !haskey(data.D.V, 2)
+    @test !haskey(data.D.V, 3)
+end
+
+@testset "simplifyStreetDigraph! block-safe keep" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+
+    # Keep mid-chain node 3 as a block member
+    b3::Vi = Vi([3])
+    b4::Vi = Vi([4])
+    data::SBRPData = SBRPData(
+        InputDigraph(
+            Dict{Int,Vertex}(
+                1 => Vertex(1, 0.0, 0.0),
+                2 => Vertex(2, 1.0, 0.0),
+                3 => Vertex(3, 2.0, 0.0),
+                4 => Vertex(4, 3.0, 0.0),
+            ),
+            Arcs([Arc(1, 2), Arc(2, 3), Arc(3, 4)]),
+            ArcCostMap(Arc(1, 2) => 1.0, Arc(2, 3) => 1.0, Arc(3, 4) => 1.0),
+        ),
+        1,
+        VVi([b3, b4]),
+        120.0,
+        Dict{Vi,Float64}(b3 => 1.0, b4 => 1.0),
+    )
+    simplifyStreetDigraph!(data)
+    @test haskey(data.D.V, 3)
+    @test haskey(data.D.distance, Arc(1, 3))
+    @test data.D.distance[Arc(1, 3)] ≈ 2.0
+    @test haskey(data.D.distance, Arc(3, 4))
+    @test data.D.distance[Arc(3, 4)] ≈ 1.0
+    @test !haskey(data.D.V, 2)
+end
+
+@testset "simplifyStreetDigraph! Campinas-1 preserves blocks" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "campinas-random", "1.sbrp")
+    if !isfile(inst)
+        @test_skip "Campinas fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        app = Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "no-cbrp-metric-closure" => true,
+            "cluster-size-profits" => false,
+            "unitary-profits" => false,
+        )
+        data, _, _ = readSBRPData(app)
+        block_nodes_before::Si = Si(getBlocksNodes(data))
+        n_before::Int = length(data.D.V)
+        a_before::Int = length(data.D.A)
+        stats = simplifyStreetDigraph!(data)
+        @test stats.nodes_after <= n_before
+        @test stats.arcs_after <= a_before
+        for v::Int in block_nodes_before
+            @test haskey(data.D.V, v)
+        end
+        @test haskey(data.D.V, data.depot)
+        for block::Vi in data.B
+            length(block) <= 1 && continue
+            for (i::Int, j::Int) in zip(block[begin:(end - 1)], block[(begin + 1):end])
+                @test haskey(data.D.distance, Arc(i, j))
+            end
+            @test haskey(data.D.distance, Arc(last(block), first(block)))
+        end
+    end
+end
+
 @testset "compactToSparseSbrpSolution toy chain" begin
     root::String = joinpath(@__DIR__, "..")
     include(joinpath(root, "src", "data.jl"))
