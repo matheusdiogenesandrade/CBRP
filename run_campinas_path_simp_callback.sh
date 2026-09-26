@@ -14,7 +14,9 @@ export PATH_CBRP_SEC_CALLBACK_LOG="${PATH_CBRP_SEC_CALLBACK_LOG:-0}"
 THREADS="${JULIA_THREADS:-1}"
 mkdir -p logs solutions/path_cbrp_simp_callback
 
-ALL_GROUPS=(
+# Do not name this GROUPS: bash reserves GROUPS for the user's Unix GIDs;
+# assignments to GROUPS are ignored, so loops would iterate GIDs (e.g. 1009).
+ALL_BATCH_GROUPS=(
   campinas-random
   campinas-sparse
   campinas-random-more-components
@@ -26,12 +28,12 @@ ALL_GROUPS=(
 )
 
 if [[ $# -gt 0 ]]; then
-  GROUPS=("$@")
+  BATCH_GROUPS=("$@")
 else
-  GROUPS=("${ALL_GROUPS[@]}")
+  BATCH_GROUPS=("${ALL_BATCH_GROUPS[@]}")
 fi
 
-for g in "${GROUPS[@]}"; do
+for g in "${BATCH_GROUPS[@]}"; do
   batch="batchs/${g}/path_cbrp_simp_callback.batch"
   if [[ ! -f "$batch" ]]; then
     echo "Missing batch: $batch" >&2
