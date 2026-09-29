@@ -4,12 +4,42 @@ using CPLEX
 """Path-CBRP SEC: (S, i, j, k_yi, k_yj) with y_meta[k]=(b,i)."""
 const PathSubtourCut = Tuple{Set{Int},Int,Int,Int,Int}
 
-"""Statistics collected by the Path SEC separation callback (user + lazy cuts)."""
+"""Depot-rooted Path-CBRP SEC `sum_{a in δ⁺(S)} x_a >= y_k`: (S, k) with depot ∉ S, y_meta[k][2] ∈ S."""
+const PathDepotSubtourCut = Tuple{Set{Int},Int}
+
+"""Canonical user-cut key `(id(S), min(ky_i, ky_j), max(ky_i, ky_j))`; `S` is interned in the stats."""
+const PathUserCutKey = Tuple{Int,Int,Int}
+
+"""
+Statistics collected by the Path SEC separation callback (user + lazy cuts).
+
+`n_user_cuts` counts cuts actually submitted to CPLEX. `n_user_found` counts every cut returned by
+max-flow separation; `n_user_dup` those whose key was already submitted earlier in the solve
+(skipped iff `dedup_user_cuts`). `n_user_nonviolated` counts submitted cuts whose violation on the
+exact (untruncated) `x` is `<= epsilon`. `user_viol_*` summarise the exact violation of submitted cuts.
+"""
 mutable struct PathSubtourCallbackStats
     n_user_cuts::Int
     n_lazy_cuts::Int
     sep_time::Float64
+    dedup_user_cuts::Bool
+    n_user_found::Int
+    n_user_dup::Int
+    n_user_nonviolated::Int
+    n_user_rounds::Int
+    user_viol_min::Float64
+    user_viol_max::Float64
+    user_viol_sum::Float64
+    s_ids::Dict{Vector{Int},Int}
+    seen_user_cuts::Set{PathUserCutKey}
 end
+
+PathSubtourCallbackStats(n_user_cuts::Int, n_lazy_cuts::Int, sep_time::Float64; dedup_user_cuts::Bool=false) =
+    PathSubtourCallbackStats(
+        n_user_cuts, n_lazy_cuts, sep_time, dedup_user_cuts,
+        0, 0, 0, 0, Inf, -Inf, 0.0,
+        Dict{Vector{Int},Int}(), Set{PathUserCutKey}(),
+    )
 
 """
 Require callback SEC separation when compact arc MTZ is disabled.
@@ -114,7 +144,7 @@ function buildPathSubtourSepContext(
         Vₘ,
         Vₘʳ,
         length(Vₘ),
-        1e-6,
+        secMinViolation(app),
         get(app, "subcycle-separation", "all"),
         100_000,
     )
@@ -173,28 +203,107 @@ function submitPathSubtourUserCut!(
 end
 
 """
-Submit Path SEC as a CPLEX lazy constraint from a callback (integer candidates).
+Submit a depot-rooted Path SEC `sum_{a in δ⁺(S)} x_a >= y_k` as a CPLEX lazy constraint
+(integer candidates).
 """
-function submitPathSubtourLazyCut!(
+function submitPathDepotSubtourLazyCut!(
     cb_data::CPLEX.CallbackContext,
     ctx::PathSubtourSepContext,
-    cut::PathSubtourCut,
+    cut::PathDepotSubtourCut,
 )::Nothing
-    S::Set{Int}, _, _, ky_i::Int, ky_j::Int = cut
+    S::Set{Int}, ky::Int = cut
     out_k::Vector{Int} = path_out_arc_indices_S(S, ctx.A, ctx.out_idx)
     MOI.submit(
         ctx.model,
         MOI.LazyConstraint(cb_data),
-        @build_constraint(
-            sum(ctx.x[k] for k in out_k; init=0.0) >= ctx.y[ky_i] + ctx.y[ky_j] - 1,
-        ),
+        @build_constraint(sum(ctx.x[k] for k in out_k; init=0.0) >= ctx.y[ky]),
     )
     return nothing
 end
 
 """
+\\brief Connected components of the integer `x`-support (arcs with `x > 0.5`), via iterative DFS.
+
+Flow balance makes each weakly connected component Eulerian (hence strongly connected), so an
+undirected search suffices.
+
+\\param A Arc list indexed like `x_val`
+\\param x_val Integer (within tolerance) arc values
+\\return Map node → component id (only nodes incident to a support arc)
+"""
+function pathSupportComponents(A::Arcs, x_val::Dict{Int,Float64})::Dict{Int,Int}
+    adj::Dict{Int,Vector{Int}} = Dict{Int,Vector{Int}}()
+    for (k::Int, a::Arc) in enumerate(A)
+        get(x_val, k, 0.0) > 0.5 || continue
+        push!(get!(Vector{Int}, adj, first(a)), last(a))
+        push!(get!(Vector{Int}, adj, last(a)), first(a))
+    end
+    comp::Dict{Int,Int} = Dict{Int,Int}()
+    n_comp::Int = 0
+    for s::Int in keys(adj)
+        haskey(comp, s) && continue
+        n_comp += 1
+        comp[s] = n_comp
+        stack::Vector{Int} = [s]
+        while !isempty(stack)
+            u::Int = pop!(stack)
+            for v::Int in adj[u]
+                haskey(comp, v) && continue
+                comp[v] = n_comp
+                push!(stack, v)
+            end
+        end
+    end
+    return comp
+end
+
+"""
+\\brief Exact SEC separation at an integer candidate: one depot-rooted cut
+`sum_{a in δ⁺(C)} x_a >= y_k` per serviced `y_k` whose node lies in a support component `C`
+without the depot.
+
+\\param ctx Path SEC separation context (uses `A`, `depot`, `y_meta`)
+\\param x_val Integer arc values
+\\param y_val Integer service values
+\\return Violated cuts `(C, k)`; empty iff every serviced node is connected to the depot
+"""
+function findDisconnectedPathSubtourCuts(
+    ctx::PathSubtourSepContext,
+    x_val::Dict{Int,Float64},
+    y_val::Dict{Int,Float64},
+)::Vector{PathDepotSubtourCut}
+    comp::Dict{Int,Int} = pathSupportComponents(ctx.A, x_val)
+    depot_c::Int = get(comp, ctx.depot, 0)
+    members::Dict{Int,Set{Int}} = Dict{Int,Set{Int}}()
+    for (v::Int, c::Int) in comp
+        push!(get!(Set{Int}, members, c), v)
+    end
+    cuts::Vector{PathDepotSubtourCut} = PathDepotSubtourCut[]
+    for k::Int in 1:length(ctx.y_meta)
+        get(y_val, k, 0.0) > 0.5 || continue
+        c::Int = get(comp, ctx.y_meta[k][2], 0)
+        (c == 0 || c == depot_c) && continue
+        push!(cuts, (members[c], k))
+    end
+    return cuts
+end
+
+"""Largest `|v - round(v)|` over `x_val` and `y_val` (candidate integrality diagnostic)."""
+function pathCandidateMaxFractionality(
+    x_val::Dict{Int,Float64},
+    y_val::Dict{Int,Float64},
+)::Float64
+    m::Float64 = 0.0
+    for v in Iterators.flatten((values(x_val), values(y_val)))
+        m = max(m, abs(v - round(v)))
+    end
+    return m
+end
+
+"""
 Max-flow separation of violated Path-CBRP subtour cuts at a fractional `(x_val, y_val)`.
-Does not modify the model.
+Max-flow (on truncated capacities) only proposes the sets `S`; a cut is reported iff its
+violation on the exact `x_val`, `y_val` exceeds `ctx.epsilon`. Does not modify the model.
 """
 function findViolatedPathSubtourCuts(
     ctx::PathSubtourSepContext,
@@ -232,17 +341,22 @@ function findViolatedPathSubtourCuts(
         for target::Int in V′
             source == target && continue
 
-            maxFlow::Float64, flows, set = SparseMaxFlowMinCut.find_maxflow_mincut(
+            _, _, set = SparseMaxFlowMinCut.find_maxflow_mincut(
                 SparseMaxFlowMinCut.Graph(ctx.n, g),
                 ctx.Vₘ[source],
                 ctx.Vₘ[target],
             )
-            flow::Float64 = maxFlow / ctx.M
 
             set[ctx.Vₘ[target]] == 1 && continue
 
             S::Set{Int} = Set{Int}(
                 map(i::Int -> ctx.Vₘʳ[i], filter(i::Int -> set[i] == 1, 1:ctx.n)),
+            )
+            # Capacities are truncated to 5 digits, so the max-flow value can undershoot
+            # x(δ⁺(S)) by ~1e-5 per arc; violation is judged on the exact values.
+            flow::Float64 = sum(
+                get(x_val, k, 0.0) for k in path_out_arc_indices_S(S, ctx.A, ctx.out_idx);
+                init=0.0,
             )
 
             for i::Int in S
@@ -284,6 +398,114 @@ function findViolatedPathSubtourCuts(
     return new_cuts
 end
 
+"""
+\\brief Canonical key of a Path SEC user cut; interns `S` in `stats.s_ids`.
+
+The constraint depends only on `δ⁺(S)` and the unordered pair `{ky_i, ky_j}`, so `i`, `j` are dropped.
+
+\\param stats Callback statistics holding the `S` intern table
+\\param cut Path SEC `(S, i, j, ky_i, ky_j)`
+\\return `(id(S), min(ky_i, ky_j), max(ky_i, ky_j))`
+"""
+function pathUserCutKey!(stats::PathSubtourCallbackStats, cut::PathSubtourCut)::PathUserCutKey
+    S::Set{Int}, _, _, ky_i::Int, ky_j::Int = cut
+    s_id::Int = get!(stats.s_ids, sort!(collect(S)), length(stats.s_ids) + 1)
+    return (s_id, min(ky_i, ky_j), max(ky_i, ky_j))
+end
+
+"""
+\\brief Violation `y_{ky_i} + y_{ky_j} - 1 - sum_{a in δ⁺(S)} x_a` of a Path SEC on untruncated values.
+
+\\param ctx Path SEC separation context (uses `A`, `out_idx`)
+\\param cut Path SEC `(S, i, j, ky_i, ky_j)`
+\\param x_val Arc values
+\\param y_val Service values
+\\return Violation (positive iff the point violates the cut)
+"""
+function pathSubtourCutViolation(
+    ctx::PathSubtourSepContext,
+    cut::PathSubtourCut,
+    x_val::Dict{Int,Float64},
+    y_val::Dict{Int,Float64},
+)::Float64
+    S::Set{Int}, _, _, ky_i::Int, ky_j::Int = cut
+    lhs::Float64 = sum(
+        get(x_val, k, 0.0) for k in path_out_arc_indices_S(S, ctx.A, ctx.out_idx);
+        init=0.0,
+    )
+    return get(y_val, ky_i, 0.0) + get(y_val, ky_j, 0.0) - 1.0 - lhs
+end
+
+"""
+\\brief Filter one relaxation round of max-flow cuts against previously submitted keys and update stats.
+
+Every found cut is checked against `stats.seen_user_cuts`; repeats are counted in `n_user_dup` and
+dropped only when `stats.dedup_user_cuts`. Kept cuts are recorded, and their exact violation feeds the
+`user_viol_*` stats (`<= ctx.epsilon` counts as non-violated). Does not touch `n_user_cuts`.
+
+\\param stats Callback statistics (mutated)
+\\param ctx Path SEC separation context
+\\param cuts Cuts returned by `findViolatedPathSubtourCuts`
+\\param x_val Arc values of the separated point
+\\param y_val Service values of the separated point
+\\return `(to_submit, round)` where `round` is a NamedTuple with `found`, `dup`, `submitted`,
+        `nonviolated`, `viol_min`, `viol_mean`, `viol_max` for this round
+"""
+function selectPathUserCuts!(
+    stats::PathSubtourCallbackStats,
+    ctx::PathSubtourSepContext,
+    cuts,
+    x_val::Dict{Int,Float64},
+    y_val::Dict{Int,Float64},
+)
+    to_submit::Vector{PathSubtourCut} = PathSubtourCut[]
+    n_dup::Int = 0
+    n_nonviolated::Int = 0
+    viol_min::Float64 = Inf
+    viol_max::Float64 = -Inf
+    viol_sum::Float64 = 0.0
+    for cut::PathSubtourCut in cuts
+        key::PathUserCutKey = pathUserCutKey!(stats, cut)
+        if key in stats.seen_user_cuts
+            n_dup += 1
+            stats.dedup_user_cuts && continue
+        else
+            push!(stats.seen_user_cuts, key)
+        end
+        v::Float64 = pathSubtourCutViolation(ctx, cut, x_val, y_val)
+        v <= ctx.epsilon && (n_nonviolated += 1)
+        viol_min = min(viol_min, v)
+        viol_max = max(viol_max, v)
+        viol_sum += v
+        push!(to_submit, cut)
+    end
+    n_found::Int = length(cuts)
+    stats.n_user_found += n_found
+    stats.n_user_dup += n_dup
+    stats.n_user_nonviolated += n_nonviolated
+    n_found > 0 && (stats.n_user_rounds += 1)
+    stats.user_viol_min = min(stats.user_viol_min, viol_min)
+    stats.user_viol_max = max(stats.user_viol_max, viol_max)
+    stats.user_viol_sum += viol_sum
+    n_sub::Int = length(to_submit)
+    return to_submit, (
+        found=n_found,
+        dup=n_dup,
+        submitted=n_sub,
+        nonviolated=n_nonviolated,
+        viol_min=viol_min,
+        viol_mean=n_sub > 0 ? viol_sum / n_sub : NaN,
+        viol_max=viol_max,
+    )
+end
+
+"""Mean exact violation of all submitted user cuts (`NaN` when none were submitted)."""
+pathUserCutMeanViolation(stats::PathSubtourCallbackStats)::Float64 =
+    stats.n_user_cuts > 0 ? stats.user_viol_sum / stats.n_user_cuts : NaN
+
+"""Short scientific rendering for violation diagnostics."""
+_viol_str(v::Float64)::String = isfinite(v) ? string(round(v; sigdigits=3)) : "NA"
+
 """Load `(x_val, y_val)` from a CPLEX generic callback after `load_callback_variable_primal`."""
 function pathCallbackPrimalValues(
     cb_data::CPLEX.CallbackContext,
@@ -318,6 +540,26 @@ function pathSecCallbackLog!(
     return nothing
 end
 
+"""
+Log one RELAXATION round (found / duplicate / submitted cuts and exact violations).
+
+Silent when separation found nothing; disable with `PATH_CBRP_SEC_CALLBACK_LOG=0`.
+"""
+function pathSecRelaxationLog!(rnd, stats::PathSubtourCallbackStats)::Nothing
+    get(ENV, "PATH_CBRP_SEC_CALLBACK_LOG", "1") == "0" && return nothing
+    rnd.found == 0 && return nothing
+    println(
+        "[PathSEC] RELAXATION user: +$(rnd.submitted) cuts " *
+        "[found=$(rnd.found), dup=$(rnd.dup), nonViolated=$(rnd.nonviolated), " *
+        "viol min/mean/max=$(_viol_str(rnd.viol_min))/$(_viol_str(rnd.viol_mean))/" *
+        "$(_viol_str(rnd.viol_max))] " *
+        "(cum. user=$(stats.n_user_cuts), found=$(stats.n_user_found), " *
+        "dup=$(stats.n_user_dup), lazy=$(stats.n_lazy_cuts))",
+    )
+    flush(stdout)
+    return nothing
+end
+
 """True when all `x` and `y` callback values are (near) binary integers."""
 function pathCallbackSolutionIsInteger(
     x_val::Dict{Int,Float64},
@@ -336,8 +578,9 @@ end
 Register a single CPLEX callback: user cuts at LP relaxations, lazy cuts at integer candidates.
 
 CPLEX.jl convention (see `CPLEX/test/MathOptInterface/MOI_callbacks.jl`):
-- `CPX_CALLBACKCONTEXT_RELAXATION` → `MOI.UserCut`
-- `CPX_CALLBACKCONTEXT_CANDIDATE` → `MOI.LazyConstraint` (integer points only)
+- `CPX_CALLBACKCONTEXT_RELAXATION` → `MOI.UserCut` (max-flow `findViolatedPathSubtourCuts`)
+- `CPX_CALLBACKCONTEXT_CANDIDATE` → `MOI.LazyConstraint` (integer points only; exact DFS
+  `findDisconnectedPathSubtourCuts`, depot-rooted cuts)
 
 Do not use `callback_node_status` here: for generic callbacks CPLEX.jl maps every
 `CANDIDATE` to `CALLBACK_NODE_STATUS_INTEGER`, so fractional LP points were never cut.
@@ -354,18 +597,18 @@ function registerPathSubtourSeparationCallback!(
             CPLEX.load_callback_variable_primal(cb_data, context_id)
             x_val::Dict{Int,Float64}, y_val::Dict{Int,Float64} =
                 pathCallbackPrimalValues(cb_data, ctx)
-            n_added = 0
+            sep_round = nothing
             sep_elapsed = @elapsed begin
                 cuts::Set{PathSubtourCut} =
                     findViolatedPathSubtourCuts(ctx, x_val, y_val)
-                for cut in cuts
+                to_submit, sep_round = selectPathUserCuts!(stats, ctx, cuts, x_val, y_val)
+                for cut in to_submit
                     submitPathSubtourUserCut!(cb_data, ctx, cut)
                     stats.n_user_cuts += 1
-                    n_added += 1
                 end
             end
             stats.sep_time += sep_elapsed
-            pathSecCallbackLog!("RELAXATION user", n_added, stats)
+            pathSecRelaxationLog!(sep_round, stats)
         elseif context_id == CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
             ispoint_p = Ref{CPLEX.CPXINT}()
             if CPLEX.CPXcallbackcandidateispoint(cb_data, ispoint_p) != 0 ||
@@ -376,16 +619,25 @@ function registerPathSubtourSeparationCallback!(
             x_val, y_val = pathCallbackPrimalValues(cb_data, ctx)
             pathCallbackSolutionIsInteger(x_val, y_val) || return nothing
             n_added = 0
+            lazy_cuts::Vector{PathDepotSubtourCut} = PathDepotSubtourCut[]
             sep_elapsed = @elapsed begin
-                cuts = findViolatedPathSubtourCuts(ctx, x_val, y_val)
-                for cut in cuts
-                    submitPathSubtourLazyCut!(cb_data, ctx, cut)
+                lazy_cuts = findDisconnectedPathSubtourCuts(ctx, x_val, y_val)
+                for cut in lazy_cuts
+                    submitPathDepotSubtourLazyCut!(cb_data, ctx, cut)
                     stats.n_lazy_cuts += 1
                     n_added += 1
                 end
             end
             stats.sep_time += sep_elapsed
-            pathSecCallbackLog!("CANDIDATE lazy", n_added, stats)
+            if !isempty(lazy_cuts)
+                comp_sizes::Vector{Int} = sort!(unique(map(c -> length(first(c)), lazy_cuts)))
+                pathSecCallbackLog!(
+                    "CANDIDATE lazy [disconnected |C|=$(comp_sizes), " *
+                    "maxFrac=$(pathCandidateMaxFractionality(x_val, y_val))]",
+                    n_added,
+                    stats,
+                )
+            end
         end
         return nothing
     end

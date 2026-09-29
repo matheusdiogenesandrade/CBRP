@@ -86,6 +86,13 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--no-path-cbrp-mtz"
         help = "Path-CBRP: skip compact arc MTZ (requires --path-cbrp-mip and callback SEC separation)"
         action = :store_true
+        "--path-sec-dedup-user-cuts"
+        help = "Path-CBRP callback SEC: skip user cuts already submitted earlier in the solve (duplicates are always counted)"
+        action = :store_true
+        "--sec-min-violation"
+        help = "SEC max-flow separation (complete digraph + Path-CBRP): minimum exact violation for a cut to be reported"
+        arg_type = Float64
+        default = 1e-4
         "--path-cbrp-warm-sol"
         help = "Carlos Path-CBRP: warm-start solution file (BRKGA .sol or path-cbrp-mtz article .txt)"
         arg_type = String
@@ -102,7 +109,7 @@ end
 # log function
 function log(app::Dict{String,Any}, info::Dict{String,String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex", "maxFlowUserCutsFound", "maxFlowUserCutsDup", "maxFlowUserCutsNonViolated", "maxFlowUserCutsViolMin", "maxFlowUserCutsViolMean", "maxFlowUserCutsViolMax"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty=false))
     info["instance"] = first(split(info["instance"], "."; keepempty=false))
@@ -442,6 +449,13 @@ function run(app::Dict{String,Any})
             )
         end
     end
+
+    if get(app, "path-sec-dedup-user-cuts", false)
+        get(app, "path-cbrp-mip", false) || error("--path-sec-dedup-user-cuts requires --path-cbrp-mip")
+        sep_engine == "callback" ||
+            error("--path-sec-dedup-user-cuts requires --subcycle-separation-engine callback")
+    end
+    get(app, "sec-min-violation", 1e-4) >= 0 || error("--sec-min-violation must be >= 0")
 
     warm_sol_path::String = String(strip(String(get(app, "path-cbrp-warm-sol", ""))))
     if !isempty(warm_sol_path)

@@ -61,7 +61,7 @@ function buildCompleteSubtourSepContext(
         Vₘ,
         Vₘʳ,
         length(Vₘ),
-        1e-2,
+        secMinViolation(app),
         get(app, "subcycle-separation", "all"),
         100_000,
     )
@@ -69,7 +69,8 @@ end
 
 """
 Max-flow separation of violated complete-digraph subtour cuts at `(x_val, z_val, w_val)`.
-Does not modify the model.
+Max-flow (on truncated capacities) only proposes the sets `S`; a cut is reported iff its
+violation on the exact `x_val`, `z_val` exceeds `ctx.epsilon`. Does not modify the model.
 """
 function findViolatedCompleteSubtourCuts(
     ctx::CompleteSubtourSepContext,
@@ -101,16 +102,18 @@ function findViolatedCompleteSubtourCuts(
         for target::Int in V′
             source == target && continue
 
-            maxFlow::Float64, flows, set = SparseMaxFlowMinCut.find_maxflow_mincut(
+            maxFlow::Float64, _, set = SparseMaxFlowMinCut.find_maxflow_mincut(
                 SparseMaxFlowMinCut.Graph(ctx.n, g),
                 ctx.Vₘ[source],
                 ctx.Vₘ[target],
             )
-            flow::Float64 = maxFlow / ctx.M
 
             set[ctx.Vₘ[target]] == 1 && continue
-            flow + ctx.epsilon >= get(z_val, source, 0.0) + get(z_val, target, 0.0) - 1 &&
-                continue
+            rhs::Float64 = get(z_val, source, 0.0) + get(z_val, target, 0.0) - 1
+            # Capacities are truncated to 5 digits and arcs with x <= EPS are left out of the
+            # max-flow graph, so the max-flow value never exceeds x(δ⁺(S)): it can only rule a
+            # cut out; violation is judged on the exact x over all of δ⁺(S).
+            maxFlow / ctx.M + ctx.epsilon >= rhs && continue
 
             S::Si = Si(
                 map(
@@ -119,9 +122,10 @@ function findViolatedCompleteSubtourCuts(
                 ),
             )
             Aₛ::Arcs = δ⁺(ctx.A, S)
+            flow::Float64 = sum(get(x_val, a, 0.0) for a in Aₛ; init=0.0)
+            flow + ctx.epsilon >= rhs && continue
             Aᵢ::Arcs = union(δ⁺(A′, source), δ⁺(A′, target))
-            violation::Float64 =
-                get(z_val, source, 0.0) + get(z_val, target, 0.0) - 1 - (flow + ctx.epsilon)
+            violation::Float64 = rhs - (flow + ctx.epsilon)
 
             if ctx.sep_mode == "best"
                 if max_violation < violation

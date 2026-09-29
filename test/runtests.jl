@@ -362,6 +362,154 @@ end
     @test isempty(cuts_ok)
 end
 
+@testset "findDisconnectedPathSubtourCuts (integer candidate DFS)" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    # depot 1; depot cycle 1→2→1; subtour 3→4→5→3; bridges 2→3, 5→1 for the single-tour case.
+    A::Arcs = Arcs([1 => 2, 2 => 1, 3 => 4, 4 => 5, 5 => 3, 2 => 3, 5 => 1])
+    y_meta::Vector{Tuple{Int,Int}} = [(1, 2), (2, 4)]
+    out_idx::Dict{Int,Vector{Int}} = Dict(1 => [1], 2 => [2, 6], 3 => [3], 4 => [4], 5 => [5, 7])
+    model = Model()
+    @variable(model, x[1:length(A)])
+    @variable(model, y[1:length(y_meta)])
+    V::Vi = Vi([1, 2, 3, 4, 5])
+    Vₘ = Dict{Int,Int}(i => i for i in V)
+    ctx::PathSubtourSepContext = PathSubtourSepContext(
+        model, x, y, A, y_meta, out_idx, 1, V,
+        path_y_index_map(y_meta), path_blocks_at(y_meta),
+        Vₘ, Vₘ, length(V), 1e-6, "all", 100_000,
+    )
+    xv(on::Vector{Int}) = Dict{Int,Float64}(k => (k in on ? 1.0 : 0.0) for k in 1:length(A))
+
+    # Two cycles, both blocks serviced: one cut on the non-depot cycle for y_2 (node 4).
+    cuts = findDisconnectedPathSubtourCuts(ctx, xv([1, 2, 3, 4, 5]), Dict(1 => 1.0, 2 => 1.0))
+    @test cuts == [(Set([3, 4, 5]), 2)]
+    @test path_out_arc_indices_S(first(cuts[1]), A, out_idx) == [7]
+
+    # Single tour 1→2→3→4→5→1 through both serviced nodes: no cut.
+    @test isempty(findDisconnectedPathSubtourCuts(ctx, xv([1, 6, 3, 4, 7]), Dict(1 => 1.0, 2 => 1.0)))
+
+    # Unserviced subtour is not cut.
+    @test isempty(findDisconnectedPathSubtourCuts(ctx, xv([1, 2, 3, 4, 5]), Dict(1 => 1.0, 2 => 0.0)))
+
+    # Depot tour services nothing, subtour services everything: the depot-rooted DFS cut
+    # catches it, while the pairwise max-flow family (y_i + y_j - 1) has no violated pair.
+    x_gap = xv([1, 2, 3, 4, 5])
+    y_gap = Dict(1 => 0.0, 2 => 1.0)
+    @test findDisconnectedPathSubtourCuts(ctx, x_gap, y_gap) == [(Set([3, 4, 5]), 2)]
+    @test isempty(findViolatedPathSubtourCuts(ctx, x_gap, y_gap))
+
+    # Near-integer values (within CPLEX integrality tolerance) on a connected tour: no cut from
+    # either separator (max-flow judges violation on exact values, not truncated capacities).
+    x_near = Dict{Int,Float64}(k => (k in (1, 6, 3, 4, 7) ? 1.0 - 1e-6 : 1e-7) for k in 1:length(A))
+    y_near = Dict(1 => 1.0 - 1e-6, 2 => 1.0)
+    @test isempty(findDisconnectedPathSubtourCuts(ctx, x_near, y_near))
+    @test isempty(findViolatedPathSubtourCuts(ctx, x_near, y_near))
+
+    @test pathCandidateMaxFractionality(x_near, Dict(1 => 1.0)) ≈ 1e-6
+end
+
+@testset "findViolatedPathSubtourCuts judges violation on exact x (not truncated capacities)" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    # Triangle 1→2→3→1, depot 1; y_1 = (block 1, node 2), y_2 = (block 1, node 3).
+    A::Arcs = Arcs([1 => 2, 2 => 3, 3 => 1])
+    y_meta::Vector{Tuple{Int,Int}} = [(1, 2), (1, 3)]
+    out_idx::Dict{Int,Vector{Int}} = Dict(1 => [1], 2 => [2], 3 => [3])
+    model = Model()
+    @variable(model, x[1:3])
+    @variable(model, y[1:2])
+    V::Vi = Vi([1, 2, 3])
+    Vₘ = Dict{Int,Int}(i => i for i in V)
+    ctx::PathSubtourSepContext = PathSubtourSepContext(
+        model, x, y, A, y_meta, out_idx, 1, V,
+        path_y_index_map(y_meta), path_blocks_at(y_meta),
+        Vₘ, Vₘ, 3, 1e-6, "all", 100_000,
+    )
+    # S = {2}: x(δ⁺(S)) = x_{2→3} = 0.300009 = y_1 + y_2 - 1 (tight). Truncating the capacity to
+    # 0.30000 would undershoot by 9e-6 > epsilon and report a spurious cut.
+    y_val = Dict(1 => 0.65, 2 => 0.650009)
+    x_tight = Dict(1 => 1.0, 2 => 0.300009, 3 => 1.0)
+    @test isempty(findViolatedPathSubtourCuts(ctx, x_tight, y_val))
+    # Genuinely violated by 1e-4: found on S = {2} and S = {1, 2} (both have δ⁺(S) = {2→3}).
+    x_viol = Dict(1 => 1.0, 2 => 0.299909, 3 => 1.0)
+    cuts = findViolatedPathSubtourCuts(ctx, x_viol, y_val)
+    @test Set(first.(cuts)) == Set([Set([2]), Set([1, 2])])
+    for cut in cuts
+        @test path_out_arc_indices_S(first(cut), A, out_idx) == [2]
+        @test pathSubtourCutViolation(ctx, cut, x_viol, y_val) ≈ 1e-4
+    end
+end
+
+@testset "Path SEC user-cut dedup and violation diagnostics" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    # Triangle 1→2→3→1, depot 1; y_1 = (block 1, node 2), y_2 = (block 1, node 3).
+    A::Arcs = Arcs([1 => 2, 2 => 3, 3 => 1])
+    y_meta::Vector{Tuple{Int,Int}} = [(1, 2), (1, 3)]
+    out_idx::Dict{Int,Vector{Int}} = Dict(1 => [1], 2 => [2], 3 => [3])
+    model = Model()
+    @variable(model, x[1:3])
+    @variable(model, y[1:2])
+    V::Vi = Vi([1, 2, 3])
+    Vₘ = Dict{Int,Int}(i => i for i in V)
+    ctx::PathSubtourSepContext = PathSubtourSepContext(
+        model, x, y, A, y_meta, out_idx, 1, V,
+        path_y_index_map(y_meta), path_blocks_at(y_meta),
+        Vₘ, Vₘ, 3, 1e-2, "all", 100_000,
+    )
+
+    # Keys ignore i/j, the order of the y pair, and the iteration order of S.
+    st = PathSubtourCallbackStats(0, 0, 0.0)
+    @test pathUserCutKey!(st, (Set([2, 3]), 2, 1, 1, 2)) == pathUserCutKey!(st, (Set([3, 2]), 3, 1, 2, 1))
+    @test pathUserCutKey!(st, (Set([2]), 2, 3, 1, 2)) != pathUserCutKey!(st, (Set([2, 3]), 2, 1, 1, 2))
+    @test length(st.s_ids) == 2
+
+    # Exact violation: S = {2}, δ⁺(S) = {2→3}; y_1 + y_2 - 1 - x_2.
+    x_val = Dict(1 => 0.4, 2 => 0.3, 3 => 0.4)
+    y_val = Dict(1 => 0.9, 2 => 0.9)
+    cut_a::PathSubtourCut = (Set([2]), 2, 3, 1, 2)
+    @test pathSubtourCutViolation(ctx, cut_a, x_val, y_val) ≈ 0.5
+    # S = {2, 3}, δ⁺(S) = {3→1}: 0.8 - 0.795 = 0.005 <= epsilon (1e-2) → non-violated.
+    cut_b::PathSubtourCut = (Set([2, 3]), 2, 1, 1, 2)
+    x_b = Dict(1 => 0.4, 2 => 0.3, 3 => 0.795)
+    @test pathSubtourCutViolation(ctx, cut_b, x_b, y_val) ≈ 0.005
+
+    # Without dedup: repeats are submitted again but counted.
+    st_off = PathSubtourCallbackStats(0, 0, 0.0)
+    sub1, r1 = selectPathUserCuts!(st_off, ctx, Set([cut_a, cut_b]), x_b, y_val)
+    @test length(sub1) == 2 && r1.found == 2 && r1.dup == 0 && r1.submitted == 2
+    @test r1.nonviolated == 1
+    @test r1.viol_min ≈ 0.005 && r1.viol_max ≈ 0.5 && r1.viol_mean ≈ (0.5 + 0.005) / 2
+    sub2, r2 = selectPathUserCuts!(st_off, ctx, Set([cut_a]), x_b, y_val)
+    @test length(sub2) == 1 && r2.dup == 1
+    @test st_off.n_user_found == 3 && st_off.n_user_dup == 1 && st_off.n_user_rounds == 2
+    @test length(st_off.seen_user_cuts) == 2
+    @test st_off.n_user_nonviolated == 1
+
+    # With dedup: repeats are dropped and do not feed the violation stats.
+    st_on = PathSubtourCallbackStats(0, 0, 0.0; dedup_user_cuts=true)
+    selectPathUserCuts!(st_on, ctx, Set([cut_a]), x_b, y_val)
+    sub3, r3 = selectPathUserCuts!(st_on, ctx, Set([cut_a, cut_b]), x_b, y_val)
+    @test sub3 == [cut_b] && r3.found == 2 && r3.dup == 1 && r3.submitted == 1
+    @test st_on.user_viol_sum ≈ 0.5 + 0.005
+
+    # Empty round: no round counted, NaN mean.
+    _, r_empty = selectPathUserCuts!(st_on, ctx, Set{PathSubtourCut}(), x_b, y_val)
+    @test r_empty.found == 0 && isnan(r_empty.viol_mean) && st_on.n_user_rounds == 2
+    @test isnan(pathUserCutMeanViolation(PathSubtourCallbackStats(0, 0, 0.0)))
+    @test _viol_str(Inf) == "NA" && _viol_str(0.123456) == "0.123"
+
+    # Shared CLI threshold parsing (`--sec-min-violation`, both models).
+    @test secMinViolation(Dict{String,Any}()) == 1e-4
+    @test secMinViolation(Dict{String,Any}("sec-min-violation" => 1e-4)) == 1e-4
+    @test secMinViolation(Dict{String,Any}("sec-min-violation" => "0.001")) == 1e-3
+    @test_throws ArgumentError secMinViolation(Dict{String,Any}("sec-min-violation" => -1.0))
+end
+
 @testset "pathCallbackSolutionIsInteger" begin
     root::String = joinpath(@__DIR__, "..")
     include(joinpath(root, "src", "model.jl"))
@@ -419,6 +567,49 @@ end
     cuts_ok::Set{Tuple{Arcs,Arcs}} =
         findViolatedCompleteSubtourCuts(ctx, x_ok, z_ok, w_ok)
     @test isempty(cuts_ok)
+    @test ctx.epsilon == 1e-4
+end
+
+@testset "findViolatedCompleteSubtourCuts judges violation on exact x" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+
+    Vlist::Vi = Vi([1, 2, 3])
+    A::Arcs = Arcs([Arc(1, 2), Arc(2, 3), Arc(3, 1), Arc(2, 1), Arc(3, 2), Arc(1, 3)])
+    data::SBRPData = SBRPData(
+        InputDigraph(
+            Dict{Int,Vertex}(i => Vertex(i, Float64(i), 0.0) for i in Vlist),
+            A,
+            ArcCostMap(map(a::Arc -> a => 1.0, A)),
+        ),
+        1,
+        VVi([Vi([2]), Vi([3])]),
+        60.0,
+        Dict{Vi,Float64}(Vi([2]) => 1.0, Vi([3]) => 1.0),
+    )
+    model::Model = Model()
+    @variable(model, x[a::Arc in A])
+    ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(
+        data, model, Dict{String,Any}("subcycle-separation" => "all", "sec-min-violation" => 1e-6),
+    )
+    @test ctx.epsilon == 1e-6
+
+    xv(x23::Float64, x13::Float64) = ArcCostMap(
+        Arc(1, 2) => 1.0, Arc(2, 3) => x23, Arc(3, 1) => 1.0,
+        Arc(2, 1) => 0.0, Arc(3, 2) => 0.0, Arc(1, 3) => x13,
+    )
+    w_val::Dict{Int,Float64} = Dict(1 => 1.0, 2 => 0.0, 3 => 0.0)
+
+    # Depot 1 → target 3 yields S = {1, 2}, δ⁺(S) = {2→3, 1→3}; rhs = z_1 + z_3 - 1 = z_3.
+    # Tight: x(δ⁺(S)) = 0.300009 = z_3. Truncating x_{2→3} to 0.30000 would fake a violation.
+    @test isempty(findViolatedCompleteSubtourCuts(ctx, xv(0.300009, 0.0), Dict(1 => 1.0, 2 => 1.0, 3 => 0.300009), w_val))
+    # Not violated: x_{1→3} = 5e-5 <= EPS is left out of the max-flow graph but counts exactly.
+    @test isempty(findViolatedCompleteSubtourCuts(ctx, xv(0.3, 5e-5), Dict(1 => 1.0, 2 => 1.0, 3 => 0.30004), w_val))
+    # Genuinely violated by 1e-4: found on S = {1, 2}.
+    cuts = findViolatedCompleteSubtourCuts(ctx, xv(0.299909, 0.0), Dict(1 => 1.0, 2 => 1.0, 3 => 0.300009), w_val)
+    @test length(cuts) == 1
+    @test Set(first(first(cuts))) == Set([Arc(2, 3), Arc(1, 3)])
 end
 
 @testset "Complete digraph SEC callback validation" begin

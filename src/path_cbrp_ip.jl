@@ -201,7 +201,10 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         _set_cplex_threads!(model, 1)
         ctx::PathSubtourSepContext =
             buildPathSubtourSepContext(data, model, app, A, y_meta, out_idx, depot)
-        callback_stats = PathSubtourCallbackStats(0, 0, 0.0)
+        callback_stats = PathSubtourCallbackStats(
+            0, 0, 0.0;
+            dedup_user_cuts=get(app, "path-sec-dedup-user-cuts", false),
+        )
         registerPathSubtourSeparationCallback!(model, ctx, callback_stats)
     end
 
@@ -213,12 +216,26 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         info["maxFlowUserCuts"] = string(callback_stats.n_user_cuts)
         info["maxFlowLazyCuts"] = string(callback_stats.n_lazy_cuts)
         info["maxFlowCutsTime"] = string(callback_stats.sep_time)
+        info["maxFlowUserCutsFound"] = string(callback_stats.n_user_found)
+        info["maxFlowUserCutsDup"] = string(callback_stats.n_user_dup)
+        info["maxFlowUserCutsNonViolated"] = string(callback_stats.n_user_nonviolated)
+        info["maxFlowUserCutsViolMin"] = _viol_str(callback_stats.user_viol_min)
+        info["maxFlowUserCutsViolMean"] = _viol_str(pathUserCutMeanViolation(callback_stats))
+        info["maxFlowUserCutsViolMax"] = _viol_str(callback_stats.user_viol_max)
         if get(ENV, "PATH_CBRP_SEC_CALLBACK_LOG", "1") != "0"
             println(
                 "[PathSEC] solve done: submitted user=$(callback_stats.n_user_cuts) " *
                 "lazy=$(callback_stats.n_lazy_cuts) " *
                 "total=$(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts) " *
-                "sep_time=$(callback_stats.sep_time)s",
+                "sep_time=$(callback_stats.sep_time)s | " *
+                "user found=$(callback_stats.n_user_found) " *
+                "dup=$(callback_stats.n_user_dup) " *
+                "(dedup=$(callback_stats.dedup_user_cuts)) " *
+                "distinct=$(length(callback_stats.seen_user_cuts)) " *
+                "rounds=$(callback_stats.n_user_rounds) " *
+                "nonViolated=$(callback_stats.n_user_nonviolated) " *
+                "viol min/mean/max=$(info["maxFlowUserCutsViolMin"])/" *
+                "$(info["maxFlowUserCutsViolMean"])/$(info["maxFlowUserCutsViolMax"])",
             )
             flush(stdout)
         end

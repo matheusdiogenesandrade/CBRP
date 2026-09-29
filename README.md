@@ -62,9 +62,21 @@ Logs go to `logs/path_simp_callback_<group>.log`. Extract CSV summaries with `gr
 
 **Optional no MTZ:** `--no-path-cbrp-mtz` skips compact arc MTZ constraints (keeps `w` and depot bound). Requires `--path-cbrp-mip` and `--subcycle-separation-engine callback` with `--subcycle-separation` not `none` (otherwise the run errors: connectivity must come from SEC separation).
 
-Inequalities: \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Logs include `maxFlowCuts` (total), `maxFlowUserCuts`, `maxFlowLazyCuts`, `maxFlowCutsTime`, `subcycleSeparationEngine`, and `pathCbrpMtzEnabled`. Use `none` to skip SECs (faster, MTZ-only when MTZ is enabled).
+Inequalities: user cuts (fractional points, max-flow) use \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Lazy cuts (integer candidates) are separated exactly by a DFS over the support \(\{a : x_a > 0.5\}\) (`findDisconnectedPathSubtourCuts`): for each serviced \(y_{b,i}\) whose component \(C\) misses the depot, add the depot-rooted cut \(\sum_{a \in \delta^{+}(C)} x_a \ge y_{b,i}\) (dominates the pairwise form and also cuts subtours when the depot tour services nothing). Logs include `maxFlowCuts` (total), `maxFlowUserCuts`, `maxFlowLazyCuts`, `maxFlowCutsTime`, `subcycleSeparationEngine`, and `pathCbrpMtzEnabled`. Use `none` to skip SECs (faster, MTZ-only when MTZ is enabled).
 
-**Callback debug (stdout):** with `engine=callback`, each batch of submitted cuts prints as `[PathSEC] RELAXATION user: +N cuts (cum. user=…, lazy=…)` before CPLEX’s next `User` / `UserPurge2` line. Disable with `PATH_CBRP_SEC_CALLBACK_LOG=0`.
+**User-cut dedup and threshold:** every max-flow cut gets a canonical key \((S, \{k_{y_i}, k_{y_j}\})\); cuts whose key was already submitted earlier in the solve are counted as duplicates and, with `--path-sec-dedup-user-cuts`, skipped. `--sec-min-violation V` (default `1e-4`, shared with the complete-digraph separation) is the minimum violation for reporting a cut. In both models max-flow runs on capacities truncated to 5 digits (arcs with \(x \le\) `EPS` left out) and only proposes the sets \(S\); violation is always evaluated on the exact values over all of \(\delta^{+}(S)\) (before this, tight cuts looked violated: on `campinas-random/7` with \(V = 10^{-6}\), 97% of 350,911 submitted cuts had exact violation \(\le 0\)). Measured with CPLEX 20.1, 600 s, single runs (time / result):
+
+| Path run | `campinas-random/7` (opt. 37) | `campinas-random/35` (bound 156) |
+|---|---|---|
+| `--sec-min-violation 1e-6` | 94 s / 37 | 600 s / 140 |
+| `--sec-min-violation 1e-6 --path-sec-dedup-user-cuts` | 61 s / 37 | 600 s / 149 |
+| `--sec-min-violation 1e-2` | 69 s / 37 | 600 s / 129 |
+| `--sec-min-violation 1e-2 --path-sec-dedup-user-cuts` | 65 s / 37 | 600 s / 155 |
+| default (`1e-4`) + `--path-sec-dedup-user-cuts` | 19 s / 37 | 404 s / 156 (optimal, root) |
+
+Extra log columns: `maxFlowUserCutsFound`, `maxFlowUserCutsDup`, `maxFlowUserCutsNonViolated` (exact violation `<= V`), `maxFlowUserCutsViolMin/Mean/Max` (exact violation of submitted cuts).
+
+**Callback debug (stdout):** with `engine=callback`, each separation round prints as `[PathSEC] RELAXATION user: +N cuts [found=…, dup=…, nonViolated=…, viol min/mean/max=…] (cum. user=…, found=…, dup=…, lazy=…)` before CPLEX’s next `User` / `UserPurge2` line (`+N` = submitted; `viol` = exact violation of submitted cuts). Lazy batches print `[PathSEC] CANDIDATE lazy [disconnected |C|=[…], maxFrac=…]: +N cuts …` with the non-depot component sizes and the candidate's largest \(|v - \mathrm{round}(v)|\). Disable with `PATH_CBRP_SEC_CALLBACK_LOG=0`.
 
 **Complete digraph IP (`--ip` without `--path-cbrp-mip`):** same `--subcycle-separation` and `--subcycle-separation-engine` flags apply to `runCOPCompleteDigraphIPModel` in [`src/ip_model.jl`](src/ip_model.jl).
 
