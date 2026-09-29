@@ -116454,3 +116454,170 @@ Parallel b&c, 8 threads:
   Wait time (average)   =    0.00 sec.
                           ------------
 Total (root+branch&cut) = 3602.24 sec. (547099.02 ticks)
+
+############################################################
+# Merged from 79bf845:logs/campinas_sparse_more_components_unitary_profits_ip instances 1-50
+############################################################
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 1 & 54 & 2862 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.067893001 & 1 & 2 & 0.876149255 & - & - & - & 0 & 5.0 & 0.15255212783813477 & 0.0 & 0 & 58950.0 & 95.292 & 1526.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 2 & 59 & 3422 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.064361712 & 1 & 2 & 0.003534562 & - & - & - & 0 & 5.0 & 0.22186684608459473 & 0.0 & 0 & 52361.0 & 84.22500000000001 & 1263.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 3 & 48 & 2256 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.038605469 & 1 & 2 & 0.002791887 & - & - & - & 0 & 5.0 & 0.12626409530639648 & 0.0 & 0 & 39960.0 & 64.56150000000001 & 1027.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 4 & 45 & 1980 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.038180726 & 1 & 2 & 0.003009431 & - & - & - & 0 & 5.0 & 0.1382298469543457 & 0.0 & 0 & 57960.0 & 91.70100000000001 & 1058.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 5 & 57 & 3192 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.059161468 & 1 & 2 & 0.003021703 & - & - & - & 0 & 5.0 & 0.15893292427062988 & 0.0 & 0 & 36545.0 & 60.069 & 1167.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 6 & 104 & 10712 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.244437647 & 2 & 11 & 0.060522224 & - & - & - & 0 & 10.0 & 0.9533109664916992 & 0.0 & 0 & 69485.0 & 117.1785 & 2878.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 7 & 93 & 8556 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.199512112 & 2 & 4 & 0.006229438 & - & - & - & 0 & 10.0 & 0.8169040679931641 & 0.0 & 0 & 70804.0 & 115.458 & 2056.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 8 & 110 & 11990 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.287533613 & 2 & 4 & 0.005801715 & - & - & - & 0 & 10.0 & 0.9423158168792725 & 0.0 & 0 & 52841.0 & 90.759 & 2555.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 9 & 91 & 8190 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.17319445 & 2 & 4 & 0.006163122 & - & - & - & 0 & 10.0 & 1.1856379508972168 & 0.0 & 0 & 65555.0 & 110.0145 & 2596.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 10 & 110 & 11990 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.261411509 & 2 & 11 & 0.012670601 & - & - & - & 0 & 10.0 & 0.9380781650543213 & 0.0 & 0 & 68196.0 & 114.24600000000001 & 2656.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 11 & 128 & 16256 & 15 & 120.0 & IP & 15.0 & 15.0 & 0.445072584 & 4 & 15 & 0.01939539 & - & - & - & 0 & 15.0 & 3.3645360469818115 & 0.0 & 0 & 53678.0 & 100.07849999999999 & 4347.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 12 & 144 & 20592 & 15 & 120.0 & IP & 15.0 & 15.0 & 0.580949413 & 4 & 15 & 0.022097674 & - & - & - & 0 & 15.0 & 5.414783000946045 & 0.0 & 0 & 60064.0 & 109.18050000000002 & 4241.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 13 & 160 & 25440 & 15 & 120.0 & IP & 15.0 & 15.0 & 0.755209616 & 4 & 15 & 0.021723588 & - & - & - & 0 & 15.0 & 4.457973957061768 & 0.0 & 0 & 61211.0 & 117.453 & 5697.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 14 & 135 & 18090 & 15 & 120.0 & IP & 15.0 & 15.0 & 0.514509335 & 4 & 15 & 0.021161965 & - & - & - & 0 & 15.0 & 1.8192250728607178 & 0.0 & 0 & 52594.0 & 98.16450000000002 & 4283.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 15 & 129 & 16512 & 15 & 120.0 & IP & 15.0 & 15.0 & 0.431177085 & 4 & 15 & 0.019819119 & - & - & - & 0 & 15.0 & 3.4296419620513916 & 0.0 & 0 & 52069.0 & 97.7595 & 4368.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 16 & 194 & 37442 & 20 & 120.0 & IP & 20.0 & 20.0 & 1.195879025 & 4 & 33 & 0.059884592 & - & - & - & 0 & 20.0 & 10.981704950332642 & 0.0 & 0 & 53537.0 & 108.9795 & 6372.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 17 & 155 & 23870 & 20 & 120.0 & IP & 20.0 & 20.0 & 0.732434512 & 4 & 33 & 0.0569765 & - & - & - & 0 & 20.0 & 3.307913064956665 & 0.0 & 0 & 63695.0 & 119.001 & 5213.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 18 & 157 & 24492 & 20 & 120.0 & IP & 20.0 & 20.0 & 0.803155238 & 6 & 21 & 0.04426874 & - & - & - & 0 & 20.0 & 4.888976097106934 & 0.0 & 0 & 63983.0 & 118.35300000000001 & 4973.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 19 & 151 & 22650 & 20 & 120.0 & IP & 20.0 & 20.0 & 0.742783234 & 3 & 31 & 0.050154062 & - & - & - & 0 & 20.0 & 2.3380069732666016 & 0.0 & 0 & 61094.0 & 115.52700000000002 & 5308.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 20 & 156 & 24180 & 20 & 120.0 & IP & 20.0 & 20.0 & 0.797972065 & 4 & 33 & 0.057290241 & - & - & - & 0 & 20.0 & 4.789028882980347 & 0.0 & 0 & 58380.0 & 111.933 & 5414.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 21 & 194 & 37442 & 25 & 120.0 & IP & 25.0 & 25.0 & 1.338350806 & 6 & 44 & 0.107268354 & - & - & - & 0 & 25.0 & 13.789014101028442 & 0.0 & 0 & 56915.0 & 118.71300000000001 & 7409.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 22 & 193 & 37056 & 25 & 120.0 & IP & 25.0 & 25.0 & 1.278068079 & 6 & 44 & 0.104402493 & - & - & - & 0 & 25.0 & 17.305585145950317 & 0.0 & 0 & 57724.0 & 119.67000000000002 & 7352.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 23 & 196 & 38220 & 25 & 120.0 & IP & 25.0 & 25.0 & 1.425647119 & 6 & 42 & 0.092406194 & - & - & - & 0 & 25.0 & 5.971163988113403 & 0.0 & 0 & 55068.0 & 114.76350000000001 & 7147.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 24 & 193 & 37056 & 25 & 120.0 & IP & 25.0 & 25.0 & 1.302188766 & 6 & 44 & 0.111309133 & - & - & - & 0 & 25.0 & 26.63313603401184 & 0.0 & 205 & 53730.0 & 113.8905 & 7399.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 25 & 193 & 37056 & 25 & 120.0 & IP & 25.0 & 25.0 & 1.289565145 & 6 & 44 & 0.111789652 & - & - & - & 0 & 25.0 & 11.22821307182312 & 0.0 & 0 & 54664.0 & 116.421 & 7650.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 26 & 239 & 56882 & 30 & 120.0 & IP & 30.0 & 30.0 & 2.254471415 & 6 & 62 & 0.198743092 & - & - & - & 0 & 30.0 & 55.762959003448486 & 0.0 & 145 & 51872.0 & 118.92450000000001 & 9137.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 27 & 326 & 105950 & 30 & 120.0 & IP & 30.0 & 30.0 & 4.586084614 & 6 & 62 & 0.203104655 & - & - & - & 0 & 18.0 & 3626.366786003113 & 0.666666666662963 & 22680 & 43162.0 & 117.42000000000002 & 11706.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 28 & 235 & 54990 & 30 & 120.0 & IP & 30.0 & 30.0 & 2.206986598 & 6 & 62 & 0.186914294 & - & - & - & 0 & 30.0 & 182.55138182640076 & 0.0 & 3896 & 45631.0 & 108.429 & 8885.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 29 & 234 & 54522 & 30 & 120.0 & IP & 30.0 & 30.0 & 2.314645198 & 6 & 62 & 0.180787364 & - & - & - & 0 & 30.0 & 34.76777911186218 & 0.0 & 0 & 50948.0 & 116.01750000000001 & 8799.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 30 & 228 & 51756 & 30 & 120.0 & IP & 30.0 & 30.0 & 2.102591082 & 6 & 62 & 0.176055383 & - & - & - & 0 & 29.0 & 3600.3041310310364 & 0.03448275862057075 & 10223 & 54326.0 & 119.81550000000001 & 8517.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 31 & 244 & 59292 & 35 & 120.0 & IP & 35.0 & 35.0 & 2.58787722 & 11 & 77 & 0.257442706 & - & - & - & 0 & 34.0 & 3600.3488759994507 & 0.029411764705795845 & 13672 & 50553.0 & 119.943 & 9803.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 32 & 289 & 83232 & 35 & 120.0 & IP & 35.0 & 35.0 & 4.141127202 & 10 & 80 & 0.322228605 & - & - & - & 0 & 33.0 & 3600.6300950050354 & 0.06060606060587695 & 39780 & 52497.0 & 119.781 & 9119.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 33 & 265 & 69960 & 35 & 120.0 & IP & 35.0 & 35.0 & 3.088813396 & 12 & 84 & 0.33148977 & - & - & - & 0 & 35.0 & 282.57249116897583 & 0.0 & 4118 & 47286.0 & 118.85849999999999 & 10651.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 34 & 250 & 62250 & 35 & 120.0 & IP & 35.0 & 35.0 & 2.843083381 & 11 & 77 & 0.401713864 & - & - & - & 0 & 33.0 & 3623.0209550857544 & 0.06060606060587695 & 56840 & 51941.0 & 119.9055 & 9332.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 35 & 245 & 59780 & 35 & 120.0 & IP & 35.0 & 35.0 & 2.534638081 & 11 & 77 & 0.270878634 & - & - & - & 0 & 35.0 & 516.7896459102631 & 0.0 & 8710 & 49244.0 & 119.955 & 10242.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 36 & 303 & 91506 & 40 & 120.0 & IP & 40.0 & 40.0 & 5.266443545 & 13 & 114 & 0.673050405 & - & - & - & 0 & 37.0 & 3637.8178260326385 & 0.08108108108086194 & 33447 & 45471.0 & 118.93050000000001 & 11272.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 37 & 310 & 95790 & 40 & 120.0 & IP & 40.0 & 40.0 & 5.653230947 & 13 & 114 & 0.592528802 & - & - & - & 0 & 34.0 & 3627.4706070423126 & 0.17647058823477507 & 26658 & 46819.0 & 119.94900000000001 & 11049.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 38 & 303 & 91506 & 40 & 120.0 & IP & 40.0 & 40.0 & 4.741078245 & 13 & 114 & 0.569222789 & - & - & - & 0 & 34.0 & 3601.019922018051 & 0.17647058823477507 & 19827 & 46836.0 & 119.9745 & 11049.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 39 & 303 & 91506 & 40 & 120.0 & IP & 40.0 & 40.0 & 4.706670441 & 13 & 114 & 0.583580315 & - & - & - & 0 & 31.0 & 3600.599685907364 & 0.2903225806442248 & 17209 & 50966.0 & 119.9685 & 9671.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 40 & 303 & 91506 & 40 & 120.0 & IP & 40.0 & 40.0 & 5.481972654 & 13 & 114 & 0.612181788 & - & - & - & 0 & 36.0 & 3626.4995000362396 & 0.11111111111080246 & 35767 & 47438.0 & 118.938 & 10618.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 41 & 324 & 104652 & 45 & 120.0 & IP & 45.0 & 45.0 & 5.683015611 & 14 & 122 & 0.616171243 & - & - & - & 0 & 36.0 & 3600.4281890392303 & 0.24999999999930556 & 11337 & 46506.0 & 119.94749999999999 & 11153.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 42 & 345 & 118680 & 45 & 120.0 & IP & 45.0 & 45.0 & 6.841092289 & 15 & 124 & 0.756271234 & - & - & - & 0 & 27.0 & 3613.295828104019 & 0.6666666666641976 & 6429 & 43097.0 & 97.3065 & 7258.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 43 & 337 & 113232 & 45 & 120.0 & IP & 45.0 & 45.0 & 6.548641515 & 15 & 124 & 0.762818392 & - & - & - & 0 & 37.0 & 3605.802184820175 & 0.21621621621563183 & 5876 & 43009.0 & 117.51450000000001 & 11778.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 44 & 343 & 117306 & 45 & 120.0 & IP & 45.0 & 45.0 & 7.141279288 & 15 & 124 & 0.741235368 & - & - & - & 0 & 36.0 & 3618.4320499897003 & 0.24999999999930556 & 8250 & 47357.0 & 119.82 & 10841.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 45 & 327 & 106602 & 45 & 120.0 & IP & 45.0 & 45.0 & 6.13756386 & 15 & 124 & 0.731969642 & - & - & - & 0 & 18.0 & 3626.688899040222 & 1.4999999999916669 & 16033 & 23621.0 & 68.8485 & 7426.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 46 & 367 & 134322 & 50 & 120.0 & IP & 50.0 & 50.0 & 8.723540248 & 16 & 156 & 1.560657344 & - & - & - & 0 & 35.0 & 3601.369859933853 & 0.4285714285702041 & 4247 & 50047.0 & 119.9625 & 9976.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 47 & 367 & 134322 & 50 & 120.0 & IP & 50.0 & 50.0 & 9.980848286 & 14 & 150 & 1.40862414 & - & - & - & 0 & 30.0 & 3601.06209897995 & 0.6666666666644445 & 3246 & 47146.0 & 104.5545 & 7519.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 48 & 371 & 137270 & 50 & 120.0 & IP & 50.0 & 50.0 & 8.86769653 & 17 & 139 & 1.223979228 & - & - & - & 0 & 8.0 & 3601.272171020508 & 5.249999999934375 & 2916 & 6600.0 & 17.761499999999998 & 1747.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 49 & 367 & 134322 & 50 & 120.0 & IP & 50.0 & 50.0 & 9.701274883 & 14 & 150 & 1.376364331 & - & - & - & 0 & 38.0 & 3600.9175219535828 & 0.3157894736833795 & 6044 & 48427.0 & 119.589 & 10433.0
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 50 & 367 & 134322 & 50 & 120.0 & IP & 50.0 & 50.0 & 9.383985826 & 14 & 150 & 1.402016541 & - & - & - & 0 & 38.0 & 3600.883085012436 & 0.3157894736833795 & 6181 & 46779.0 & 118.4445 & 10728.0
+
+
+############################################################
+# Merged from reruns/complete_callback_mc_5to9 (2026-09-29, --subcycle-separation-engine callback) instances 5, 6, 7, 8, 9
+############################################################
+
+ & :instance & :|V| & :|A| & :|B| & :T & :model & :initialLP & :yLP & :yLPTime & :intersectionCuts1 & :intersectionCuts2 & :intersectionCutsTime & :maxFlowLP & :maxFlowCuts & :maxFlowCutsTime & :lazyCuts & :cost & :solverTime & :relativeGAP & :nodeCount & :meters & :tourMinutes & :blocksMeters
+ & 5 & 58 & 3306 & 5 & 120.0 & IP & 5.0 & 5.0 & 0.017730459 & 1 & 2 & 0.001129655 & - & 3 & 0.0011142790000000001 & 0 & 5.00 & 0.099114563 & 0.0 & 0 & 20662.0 & 40.839 & 1641.0
+ & 6 & 95 & 8930 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.108421331 & 2 & 4 & 0.00257042 & - & 4 & 0.006239600999999999 & 0 & 10.00 & 0.630761287 & 0.0 & 0 & 66980.0 & 113.982 & 2252.0
+ & 7 & 97 & 9312 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.211621945 & 2 & 4 & 0.002557491 & - & 35 & 0.022502156000000002 & 0 & 10.00 & 1.128281119 & 0.0 & 0 & 65544.0 & 115.83000000000001 & 2919.0
+ & 8 & 95 & 8930 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.085642777 & 2 & 4 & 0.002469428 & - & 5 & 0.004336152 & 0 & 10.00 & 0.710855107 & 0.0 & 0 & 62201.0 & 108.2535 & 2492.0
+ & 9 & 95 & 8930 & 10 & 120.0 & IP & 10.0 & 10.0 & 0.116291454 & 2 & 4 & 0.009711285 & - & 7 & 0.0026915190000000003 & 0 & 10.00 & 0.689754453 & 0.0 & 0 & 62682.0 & 110.11500000000001 & 2682.0
+
