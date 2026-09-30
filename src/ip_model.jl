@@ -23,6 +23,10 @@ function _mip_best_bound_str(model::Model)::String
     end
 end
 
+"""Objective value as a string, or `"N/A"` when the solve stopped with no result (e.g. time limit)."""
+_objective_value_str(model::Model)::String =
+    result_count(model) > 0 ? string(objective_value(model)) : "N/A"
+
 #=
 Get intersection cuts
 input:
@@ -493,7 +497,7 @@ function runCOPCompleteDigraphIPModel(
 
     optimize!(model)
 
-    info["initialLP"] = string(objective_value(model))
+    info["initialLP"] = _objective_value_str(model)
 
     # getting initial relaxation with only x relaxed (y, w, and z integer)
     @debug "Getting initial relaxation with y, w, and z as integer"
@@ -503,7 +507,7 @@ function runCOPCompleteDigraphIPModel(
     setBinary(values(y))
 
     info["yLPTime"] = string(@elapsed optimize!(model))
-    info["yLP"] = string(objective_value(model))
+    info["yLP"] = _objective_value_str(model)
 
     sep_mode::String = get(app, "subcycle-separation", "none")
     sep_engine::String = get(app, "subcycle-separation-engine", "root")
@@ -541,11 +545,14 @@ function runCOPCompleteDigraphIPModel(
             end)
             info["maxFlowCuts"] = string(length(new_subtour_cuts))
             optimize!(model)
-            info["maxFlowLP"] = string(objective_value(model))
+            info["maxFlowLP"] = _objective_value_str(model)
         elseif sep_engine == "callback"
             _set_cplex_threads!(model, 1)
             ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(data, model, app)
-            callback_stats = CompleteSubtourCallbackStats(0, 0, 0.0)
+            callback_stats = CompleteSubtourCallbackStats(
+                0, 0, 0.0;
+                user_cut_max_depth=secUserCutMaxDepth(app),
+            )
             registerCompleteSubtourSeparationCallback!(model, ctx, callback_stats)
         end
     else
@@ -575,12 +582,16 @@ function runCOPCompleteDigraphIPModel(
         info["maxFlowUserCuts"] = string(callback_stats.n_user_cuts)
         info["maxFlowLazyCuts"] = string(callback_stats.n_lazy_cuts)
         info["maxFlowCutsTime"] = string(callback_stats.sep_time)
+        info["userCutMaxDepth"] = string(callback_stats.user_cut_max_depth)
+        info["userCutSkippedDepth"] = string(callback_stats.n_user_skipped_depth)
         if get(ENV, "COMPLETE_SEC_CALLBACK_LOG", "1") != "0"
             println(
                 "[CompleteSEC] solve done: submitted user=$(callback_stats.n_user_cuts) " *
                 "lazy=$(callback_stats.n_lazy_cuts) " *
                 "total=$(callback_stats.n_user_cuts + callback_stats.n_lazy_cuts) " *
-                "sep_time=$(callback_stats.sep_time)s",
+                "sep_time=$(callback_stats.sep_time)s " *
+                "userCutMaxDepth=$(callback_stats.user_cut_max_depth) " *
+                "skippedDepth=$(callback_stats.n_user_skipped_depth)",
             )
             flush(stdout)
         end

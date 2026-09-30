@@ -1,12 +1,22 @@
 using Logging
 using CPLEX
 
-"""Statistics collected by the complete-digraph SEC separation callback."""
+"""
+Statistics collected by the complete-digraph SEC separation callback.
+
+`user_cut_max_depth` limits fractional separation (`-1` = unlimited); `n_user_skipped_depth` counts
+RELAXATION calls skipped because the node was deeper.
+"""
 mutable struct CompleteSubtourCallbackStats
     n_user_cuts::Int
     n_lazy_cuts::Int
     sep_time::Float64
+    user_cut_max_depth::Int
+    n_user_skipped_depth::Int
 end
+
+CompleteSubtourCallbackStats(n_user_cuts::Int, n_lazy_cuts::Int, sep_time::Float64; user_cut_max_depth::Int=-1) =
+    CompleteSubtourCallbackStats(n_user_cuts, n_lazy_cuts, sep_time, user_cut_max_depth, 0)
 
 """
 Require enabled SEC separation when using the callback engine on the complete model.
@@ -243,7 +253,8 @@ function completeCallbackSolutionIsInteger(
 end
 
 """
-Register a single CPLEX callback: user cuts at LP relaxations, lazy cuts at integer candidates.
+Register a single CPLEX callback: user cuts at LP relaxations (nodes up to
+`stats.user_cut_max_depth`), lazy cuts at integer candidates (every node).
 """
 function registerCompleteSubtourSeparationCallback!(
     model::Model,
@@ -254,6 +265,10 @@ function registerCompleteSubtourSeparationCallback!(
         n_added::Int = 0
         sep_elapsed::Float64 = 0.0
         if context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+            if !secUserCutDepthAllowed(stats.user_cut_max_depth, callbackNodeDepth(cb_data))
+                stats.n_user_skipped_depth += 1
+                return nothing
+            end
             CPLEX.load_callback_variable_primal(cb_data, context_id)
             x_val::ArcCostMap, z_val::Dict{Int,Float64}, w_val::Dict{Int,Float64} =
                 completeCallbackPrimalValues(cb_data, ctx)

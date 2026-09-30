@@ -40,6 +40,45 @@ function secMinViolation(app::Dict{String,Any})::Float64
     return v
 end
 
+"""
+\\brief Deepest B&B node at which fractional (user-cut) SECs are separated in the callback engine
+(`--sec-user-cut-max-depth`), shared by the complete-digraph and Path-CBRP callbacks. Lazy SECs at
+integer candidates are separated at every depth regardless.
+
+\\param app Parsed CLI options
+\\return Maximum depth (default `0` = root only; `-1` = unlimited)
+\\throws ArgumentError If the value is below `-1` or not an integer
+"""
+function secUserCutMaxDepth(app::Dict{String,Any})::Int
+    raw = get(app, "sec-user-cut-max-depth", 0)
+    d::Int = raw isa Integer ? Int(raw) : parse(Int, String(raw))
+    d >= -1 || throw(ArgumentError("sec-user-cut-max-depth must be >= -1 (got $(d))"))
+    return d
+end
+
+"""
+\\brief Whether fractional SECs may be separated at a node of the given depth.
+
+\\param max_depth Limit from `secUserCutMaxDepth` (`-1` = unlimited)
+\\param depth B&B depth of the current node (root = 0)
+\\return `true` iff `max_depth < 0` or `depth <= max_depth`
+"""
+secUserCutDepthAllowed(max_depth::Int, depth::Int)::Bool = max_depth < 0 || depth <= max_depth
+
+"""
+\\brief B&B depth of the node a CPLEX generic callback was invoked at (root = 0).
+
+\\param cb_data CPLEX generic callback context
+\\return Node depth
+\\throws ErrorException If CPLEX cannot report the depth
+"""
+function callbackNodeDepth(cb_data::CPLEX.CallbackContext)::Int
+    depth_p = Ref{CPLEX.CPXINT}(0)
+    status = CPLEX.CPXcallbackgetinfoint(cb_data, CPLEX.CPXCALLBACKINFO_NODEDEPTH, depth_p)
+    status == 0 || error("CPXcallbackgetinfoint(NODEDEPTH) failed with status $(status)")
+    return Int(depth_p[])
+end
+
 include("ip_model.jl")
 include("complete_subtour_cuts.jl")
 include("path_cbrp_interfaces.jl")

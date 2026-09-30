@@ -204,6 +204,7 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         callback_stats = PathSubtourCallbackStats(
             0, 0, 0.0;
             dedup_user_cuts=get(app, "path-sec-dedup-user-cuts", false),
+            user_cut_max_depth=secUserCutMaxDepth(app),
         )
         registerPathSubtourSeparationCallback!(model, ctx, callback_stats)
     end
@@ -222,6 +223,8 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         info["maxFlowUserCutsViolMin"] = _viol_str(callback_stats.user_viol_min)
         info["maxFlowUserCutsViolMean"] = _viol_str(pathUserCutMeanViolation(callback_stats))
         info["maxFlowUserCutsViolMax"] = _viol_str(callback_stats.user_viol_max)
+        info["userCutMaxDepth"] = string(callback_stats.user_cut_max_depth)
+        info["userCutSkippedDepth"] = string(callback_stats.n_user_skipped_depth)
         if get(ENV, "PATH_CBRP_SEC_CALLBACK_LOG", "1") != "0"
             println(
                 "[PathSEC] solve done: submitted user=$(callback_stats.n_user_cuts) " *
@@ -235,7 +238,9 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
                 "rounds=$(callback_stats.n_user_rounds) " *
                 "nonViolated=$(callback_stats.n_user_nonviolated) " *
                 "viol min/mean/max=$(info["maxFlowUserCutsViolMin"])/" *
-                "$(info["maxFlowUserCutsViolMean"])/$(info["maxFlowUserCutsViolMax"])",
+                "$(info["maxFlowUserCutsViolMean"])/$(info["maxFlowUserCutsViolMax"]) " *
+                "userCutMaxDepth=$(callback_stats.user_cut_max_depth) " *
+                "skippedDepth=$(callback_stats.n_user_skipped_depth)",
             )
             flush(stdout)
         end

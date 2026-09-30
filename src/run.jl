@@ -89,6 +89,10 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--path-sec-dedup-user-cuts"
         help = "Path-CBRP callback SEC: skip user cuts already submitted earlier in the solve (duplicates are always counted)"
         action = :store_true
+        "--sec-user-cut-max-depth"
+        help = "SEC callback engine (complete digraph + Path-CBRP): deepest B&B node for fractional (user-cut) SEC separation; 0 = root only, -1 = unlimited. Lazy SECs run at every node."
+        arg_type = Int
+        default = 0
         "--sec-min-violation"
         help = "SEC max-flow separation (complete digraph + Path-CBRP): minimum exact violation for a cut to be reported"
         arg_type = Float64
@@ -109,7 +113,7 @@ end
 # log function
 function log(app::Dict{String,Any}, info::Dict{String,String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex", "maxFlowUserCutsFound", "maxFlowUserCutsDup", "maxFlowUserCutsNonViolated", "maxFlowUserCutsViolMin", "maxFlowUserCutsViolMean", "maxFlowUserCutsViolMax"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex", "maxFlowUserCutsFound", "maxFlowUserCutsDup", "maxFlowUserCutsNonViolated", "maxFlowUserCutsViolMin", "maxFlowUserCutsViolMean", "maxFlowUserCutsViolMax", "userCutMaxDepth", "userCutSkippedDepth"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty=false))
     info["instance"] = first(split(info["instance"], "."; keepempty=false))
@@ -233,7 +237,9 @@ function completeDigraphIPModel(
     solution_dir::Union{String,Nothing} = app["out"]
 
     if solution_dir != nothing
-        if paths !== nothing && distances !== nothing
+        if length(solution.tour) < 2
+            @warn "No incumbent (depot-only tour): writing it without compact→street expansion"
+        elseif paths !== nothing && distances !== nothing
             solution.tour = retrieveOriginalDigraphSolution(solution.tour[2:end-1], paths, distances)
         else
             @warn "Skipping compact→street tour expansion (--out): paths/street distances not available (e.g. Carlos sparse reader)"
@@ -456,6 +462,7 @@ function run(app::Dict{String,Any})
             error("--path-sec-dedup-user-cuts requires --subcycle-separation-engine callback")
     end
     get(app, "sec-min-violation", 1e-4) >= 0 || error("--sec-min-violation must be >= 0")
+    get(app, "sec-user-cut-max-depth", 0) >= -1 || error("--sec-user-cut-max-depth must be >= -1")
 
     warm_sol_path::String = String(strip(String(get(app, "path-cbrp-warm-sol", ""))))
     if !isempty(warm_sol_path)
@@ -539,13 +546,15 @@ function main(args)
     if app["batch"] != nothing
         for line in readlines(app["batch"])
             if !isempty(strip(line)) && strip(line)[1] != '#'
-                #		    try
-                run(parse_commandline(map(s::Any -> String(s), split(line)), appfolder))
-                #		    catch e
-                #			    @error "Error processing line: $line"
-                #			    @error "$e"
-                #			    @error "$(catch_backtrace())"
-                #		    end
+                try
+                    run(parse_commandline(map(s::Any -> String(s), split(line)), appfolder))
+                catch e
+                    msg::String = "Error processing batch line: $(line)\n" *
+                        sprint(showerror, e, catch_backtrace())
+                    @error msg
+                    println(stderr, "ERROR (batch continues): ", msg)
+                    flush(stderr)
+                end
                 GC.gc()  # Force the GC to run
 
             end

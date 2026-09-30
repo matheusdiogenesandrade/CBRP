@@ -17,6 +17,8 @@ Statistics collected by the Path SEC separation callback (user + lazy cuts).
 max-flow separation; `n_user_dup` those whose key was already submitted earlier in the solve
 (skipped iff `dedup_user_cuts`). `n_user_nonviolated` counts submitted cuts whose violation on the
 exact (untruncated) `x` is `<= epsilon`. `user_viol_*` summarise the exact violation of submitted cuts.
+`user_cut_max_depth` limits fractional separation (`-1` = unlimited); `n_user_skipped_depth` counts
+RELAXATION calls skipped because the node was deeper.
 """
 mutable struct PathSubtourCallbackStats
     n_user_cuts::Int
@@ -32,13 +34,22 @@ mutable struct PathSubtourCallbackStats
     user_viol_sum::Float64
     s_ids::Dict{Vector{Int},Int}
     seen_user_cuts::Set{PathUserCutKey}
+    user_cut_max_depth::Int
+    n_user_skipped_depth::Int
 end
 
-PathSubtourCallbackStats(n_user_cuts::Int, n_lazy_cuts::Int, sep_time::Float64; dedup_user_cuts::Bool=false) =
+PathSubtourCallbackStats(
+    n_user_cuts::Int,
+    n_lazy_cuts::Int,
+    sep_time::Float64;
+    dedup_user_cuts::Bool=false,
+    user_cut_max_depth::Int=-1,
+) =
     PathSubtourCallbackStats(
         n_user_cuts, n_lazy_cuts, sep_time, dedup_user_cuts,
         0, 0, 0, 0, Inf, -Inf, 0.0,
         Dict{Vector{Int},Int}(), Set{PathUserCutKey}(),
+        user_cut_max_depth, 0,
     )
 
 """
@@ -575,7 +586,8 @@ function pathCallbackSolutionIsInteger(
 end
 
 """
-Register a single CPLEX callback: user cuts at LP relaxations, lazy cuts at integer candidates.
+Register a single CPLEX callback: user cuts at LP relaxations (nodes up to
+`stats.user_cut_max_depth`), lazy cuts at integer candidates (every node).
 
 CPLEX.jl convention (see `CPLEX/test/MathOptInterface/MOI_callbacks.jl`):
 - `CPX_CALLBACKCONTEXT_RELAXATION` → `MOI.UserCut` (max-flow `findViolatedPathSubtourCuts`)
@@ -594,6 +606,10 @@ function registerPathSubtourSeparationCallback!(
         n_added::Int = 0
         sep_elapsed::Float64 = 0.0
         if context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+            if !secUserCutDepthAllowed(stats.user_cut_max_depth, callbackNodeDepth(cb_data))
+                stats.n_user_skipped_depth += 1
+                return nothing
+            end
             CPLEX.load_callback_variable_primal(cb_data, context_id)
             x_val::Dict{Int,Float64}, y_val::Dict{Int,Float64} =
                 pathCallbackPrimalValues(cb_data, ctx)

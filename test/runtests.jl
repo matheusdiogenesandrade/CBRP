@@ -443,6 +443,45 @@ end
     end
 end
 
+@testset "SEC user-cut max depth (flag parsing, depth rule, stats defaults)" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    @test secUserCutMaxDepth(Dict{String,Any}()) == 0
+    @test secUserCutMaxDepth(Dict{String,Any}("sec-user-cut-max-depth" => -1)) == -1
+    @test secUserCutMaxDepth(Dict{String,Any}("sec-user-cut-max-depth" => "3")) == 3
+    @test_throws ArgumentError secUserCutMaxDepth(Dict{String,Any}("sec-user-cut-max-depth" => -2))
+    @test secUserCutDepthAllowed(0, 0)
+    @test !secUserCutDepthAllowed(0, 1)
+    @test secUserCutDepthAllowed(2, 2) && !secUserCutDepthAllowed(2, 3)
+    @test secUserCutDepthAllowed(-1, 0) && secUserCutDepthAllowed(-1, 10_000)
+    ps = PathSubtourCallbackStats(0, 0, 0.0)
+    @test ps.user_cut_max_depth == -1 && ps.n_user_skipped_depth == 0
+    @test PathSubtourCallbackStats(0, 0, 0.0; user_cut_max_depth=0).user_cut_max_depth == 0
+    cs = CompleteSubtourCallbackStats(0, 0, 0.0)
+    @test cs.user_cut_max_depth == -1 && cs.n_user_skipped_depth == 0
+    @test CompleteSubtourCallbackStats(0, 0, 0.0; user_cut_max_depth=2).user_cut_max_depth == 2
+end
+
+@testset "_objective_value_str returns N/A when the solve has no result" begin
+    root::String = joinpath(@__DIR__, "..")
+    include(joinpath(root, "src", "data.jl"))
+    include(joinpath(root, "src", "model.jl"))
+    infeasible = Model(CPLEX.Optimizer)
+    set_silent(infeasible)
+    @variable(infeasible, 0 <= v <= 1, Int)
+    @constraint(infeasible, v >= 2)
+    @objective(infeasible, Max, v)
+    optimize!(infeasible)
+    @test _objective_value_str(infeasible) == "N/A"
+    feasible = Model(CPLEX.Optimizer)
+    set_silent(feasible)
+    @variable(feasible, 0 <= u <= 3, Int)
+    @objective(feasible, Max, u)
+    optimize!(feasible)
+    @test parse(Float64, _objective_value_str(feasible)) ≈ 3.0
+end
+
 @testset "Path SEC user-cut dedup and violation diagnostics" begin
     root::String = joinpath(@__DIR__, "..")
     include(joinpath(root, "src", "data.jl"))
@@ -666,6 +705,8 @@ end
         @test get(info, "subcycleSeparationEngine", "") == "callback"
         @test haskey(info, "maxFlowUserCuts")
         @test parse(Int, get(info, "maxFlowUserCuts", "0")) >= 0
+        @test get(info, "userCutMaxDepth", "") == "0"
+        @test parse(Int, get(info, "userCutSkippedDepth", "-1")) >= 0
     end
 end
 
@@ -814,6 +855,8 @@ end
         @test parse(Int, info["maxFlowLazyCuts"]) >= 0
         @test parse(Int, info["maxFlowCuts"]) ==
             parse(Int, info["maxFlowUserCuts"]) + parse(Int, info["maxFlowLazyCuts"])
+        @test get(info, "userCutMaxDepth", "") == "0"
+        @test parse(Int, get(info, "userCutSkippedDepth", "-1")) >= 0
         include(joinpath(root, "src", "sol.jl"))
         checkSBRPSolution(data::SBRPData, sol::SBRPSolution)
     end

@@ -87,6 +87,14 @@ Extra log columns: `maxFlowUserCutsFound`, `maxFlowUserCutsDup`, `maxFlowUserCut
 
 Cut template: \(\sum_{a \in \delta^{+}(S)} x_a \ge \sum_{a \in \delta^{+}(\{source,target\})} x_a - 1\) (see `findViolatedCompleteSubtourCuts`). Pooled cuts (`--reuse-cuts`) are still seeded as static rows before the MIP when using `callback`. Debug log prefix: `[CompleteSEC]`; disable with `COMPLETE_SEC_CALLBACK_LOG=0`. Prefer `--subcycle-separation first` for large metric-closure instances.
 
+**User-cut depth limit (both models, `engine=callback`):** `--sec-user-cut-max-depth D` (default `0`) runs the fractional max-flow separation (user cuts at `RELAXATION`) only at B&B nodes of depth \(\le D\); `0` = root only, `-1` = every node. Lazy cuts at integer `CANDIDATE` points are separated at every depth regardless, so solutions stay subtour-free. Log columns: `userCutMaxDepth`, `userCutSkippedDepth` (relaxation callbacks skipped because the node was too deep); the `[PathSEC]` / `[CompleteSEC] solve done` lines print the same values.
+
+**No incumbent:** when CPLEX stops (e.g. time limit) without an integer solution, the run writes a row with `cost=0.00` (and `N/A` for any LP value that was not obtained) plus a depot-only (empty route) `.sol`, instead of failing. In `--batch` mode an error on one line is logged (`ERROR (batch continues): …` on stderr and in `logs/log`) and the remaining lines still run.
+
+**User-cut depth limit (both models, `engine=callback`):** `--sec-user-cut-max-depth D` (default `0`) separates fractional SECs (user cuts at `RELAXATION`) only at B&B nodes of depth \(\le D\); `0` = root only (matching what the `root` engine covered), `-1` = every node. Lazy SECs at integer `CANDIDATE` points still run at every depth, so correctness does not depend on `D`. Log columns `userCutMaxDepth` and `userCutSkippedDepth` (relaxation callbacks skipped because of depth); the `[PathSEC]` / `[CompleteSEC] solve done` lines report the same values.
+
+**Runs without an incumbent:** when a solve stops (e.g. time limit) with no integer solution, the complete-digraph IP logs `N/A` for the pre-MIP LP values it could not obtain, writes `cost=0.00` and a depot-only (empty) route. In `--batch` mode an error on one line is logged (`logs/log` and stderr, `ERROR (batch continues)`) and the batch moves on to the next line.
+
 Examples:
 
 ```sh
