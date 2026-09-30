@@ -5,6 +5,7 @@
 #   bash run_campinas_path_simp_callback.sh campinas-random campinas-sparse
 # Logs: logs/path_simp_callback_<group>.log
 # Summaries: grep -A1 '^instance,' logs/path_simp_callback_*.log
+# Fractional SEC depth: SEC_USER_CUT_MAX_DEPTH (default 1000000 = every node; 0 = root only).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -12,6 +13,7 @@ cd "$ROOT"
 
 export PATH_CBRP_SEC_CALLBACK_LOG="${PATH_CBRP_SEC_CALLBACK_LOG:-0}"
 THREADS="${JULIA_THREADS:-1}"
+SEC_USER_CUT_MAX_DEPTH="${SEC_USER_CUT_MAX_DEPTH:-1000000}"
 mkdir -p logs solutions/path_cbrp_simp_callback
 
 # Do not name this GROUPS: bash reserves GROUPS for the user's Unix GIDs;
@@ -39,10 +41,15 @@ for g in "${BATCH_GROUPS[@]}"; do
     echo "Missing batch: $batch" >&2
     exit 1
   fi
+  # run.jl parses each batch line on its own, so the flag must be on every line.
+  run_batch="$(mktemp "logs/.path_simp_callback_${g}.XXXXXX.batch")"
+  sed -E "/^[[:space:]]*(#|$)/! s/[[:space:]]*$/ --sec-user-cut-max-depth ${SEC_USER_CUT_MAX_DEPTH}/" \
+    "$batch" >"$run_batch"
   log="logs/path_simp_callback_${g}.log"
-  echo "=== ${g} ($(wc -l < "$batch") instances) → ${log} ==="
-  julia --threads="${THREADS}" --project=. src/run.jl --batch "$batch" \
+  echo "=== ${g} ($(wc -l < "$batch") instances, sec-user-cut-max-depth=${SEC_USER_CUT_MAX_DEPTH}) → ${log} ==="
+  julia --threads="${THREADS}" --project=. src/run.jl --batch "$run_batch" \
     >"$log" 2>&1
+  rm -f "$run_batch"
   echo "=== done ${g} ==="
 done
 
