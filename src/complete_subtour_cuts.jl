@@ -31,6 +31,41 @@ function validateCompleteSubtourSeparation!(app::Dict{String,Any})::Nothing
 end
 
 """
+Complete callback SEC mode: `both` = user+lazy; `lazy` = CANDIDATE only; `user` = RELAXATION only.
+"""
+function completeSecMode(app::Dict{String,Any})::String
+    mode::String = String(strip(String(get(app, "complete-sec-mode", "both"))))
+    mode in ("both", "lazy", "user") || throw(ArgumentError(
+        "complete-sec-mode must be both, lazy, or user (got $(repr(mode)))",
+    ))
+    return mode
+end
+
+"""
+Require callback SEC when compact node MTZ is disabled on the complete digraph IP.
+`complete-sec-mode user` alone is not enough (no lazy cuts for integer connectivity).
+"""
+function validateCompleteNoMtzSeparation!(app::Dict{String,Any})::Nothing
+    get(app, "no-complete-mtz", false) || return nothing
+    sep_mode::String = get(app, "subcycle-separation", "none")
+    sep_engine::String = get(app, "subcycle-separation-engine", "root")
+    if sep_mode == "none" || sep_engine != "callback"
+        throw(ArgumentError(
+            "no-complete-mtz requires subcycle-separation != none and " *
+            "subcycle-separation-engine == callback",
+        ))
+    end
+    mode::String = completeSecMode(app)
+    if mode == "user"
+        throw(ArgumentError(
+            "no-complete-mtz cannot use complete-sec-mode user " *
+            "(integer connectivity needs lazy SECs or MTZ); use both or lazy",
+        ))
+    end
+    return nothing
+end
+
+"""
 Re-enable CPLEX presolve and automatic LP method for the final MIP after cut separation
 (`getSubtourCuts` sets primal-dual LP and disables presolve during the LP separation loop).
 """
@@ -253,18 +288,27 @@ function completeCallbackSolutionIsInteger(
 end
 
 """
-Register a single CPLEX callback: user cuts at LP relaxations (nodes up to
-`stats.user_cut_max_depth`), lazy cuts at integer candidates (every node).
+Register a Complete SEC CPLEX callback.
+
+- `sec_mode == "both"` (default): user cuts at RELAXATION + lazy at CANDIDATE
+- `sec_mode == "lazy"`: CANDIDATE only (Walk-CBRP-Lazy)
+- `sec_mode == "user"`: RELAXATION only (Walk-CBRP-VI with MTZ; no lazy)
 """
 function registerCompleteSubtourSeparationCallback!(
     model::Model,
     ctx::CompleteSubtourSepContext,
-    stats::CompleteSubtourCallbackStats,
+    stats::CompleteSubtourCallbackStats;
+    sec_mode::String="both",
 )::Nothing
+    sec_mode in ("both", "lazy", "user") || throw(ArgumentError(
+        "complete-sec-mode must be both, lazy, or user (got $(repr(sec_mode)))",
+    ))
+    use_user_cuts::Bool = sec_mode in ("both", "user")
+    use_lazy_cuts::Bool = sec_mode in ("both", "lazy")
     function complete_subtour_sep_cb(cb_data::CPLEX.CallbackContext, context_id::Clong)
         n_added::Int = 0
         sep_elapsed::Float64 = 0.0
-        if context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+        if use_user_cuts && context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
             if !secUserCutDepthAllowed(stats.user_cut_max_depth, callbackNodeDepth(cb_data))
                 stats.n_user_skipped_depth += 1
                 return nothing
@@ -284,7 +328,7 @@ function registerCompleteSubtourSeparationCallback!(
             end
             stats.sep_time += sep_elapsed
             completeSecCallbackLog!("RELAXATION user", n_added, stats)
-        elseif context_id == CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+        elseif use_lazy_cuts && context_id == CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
             ispoint_p = Ref{CPLEX.CPXINT}()
             if CPLEX.CPXcallbackcandidateispoint(cb_data, ispoint_p) != 0 ||
                ispoint_p[] == 0
@@ -307,8 +351,9 @@ function registerCompleteSubtourSeparationCallback!(
         end
         return nothing
     end
-    ctx_mask::UInt16 =
-        CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE | CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+    ctx_mask::UInt16 = UInt16(0)
+    use_user_cuts && (ctx_mask |= CPLEX.CPX_CALLBACKCONTEXT_RELAXATION)
+    use_lazy_cuts && (ctx_mask |= CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE)
     MOI.set(model, CPLEX.CallbackFunction(ctx_mask), complete_subtour_sep_cb)
     return nothing
 end

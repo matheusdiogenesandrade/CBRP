@@ -316,7 +316,6 @@ function completeDigraphMipStart!(
     y = model[:y]
     z = model[:z]
     w = model[:w]
-    t = model[:t]
     Tlim::Float64 = data.T
 
     tour_nodes::Si = Set{Int}(sol.tour)
@@ -350,17 +349,20 @@ function completeDigraphMipStart!(
         set_start_value(x[a], (a in tour_arc) ? 1.0 : 0.0)
     end
 
-    for i::Int in V
-        set_start_value(t[i], 0.0)
-    end
-    set_start_value(t[depot], 0.0)
+    if haskey(model, :t)
+        t = model[:t]
+        for i::Int in V
+            set_start_value(t[i], 0.0)
+        end
+        set_start_value(t[depot], 0.0)
 
-    cum::Float64 = 0.0
-    for k::Int in 2:length(sol.tour)
-        prev::Int = sol.tour[k-1]
-        curr::Int = sol.tour[k]
-        cum += time(data, prev => curr)
-        set_start_value(t[curr], min(cum, Tlim))
+        cum::Float64 = 0.0
+        for k::Int in 2:length(sol.tour)
+            prev::Int = sol.tour[k-1]
+            curr::Int = sol.tour[k]
+            cum += time(data, prev => curr)
+            set_start_value(t[curr], min(cum, Tlim))
+        end
     end
 
     return nothing
@@ -430,11 +432,17 @@ function runCOPCompleteDigraphIPModel(
     cplex_time_limit_sec::Float64 = _ip_base_cplex_seconds(parse(Float64, get(app, "time-limit", "0")))
     set_time_limit_sec(model, cplex_time_limit_sec)
 
+    no_complete_mtz::Bool = get(app, "no-complete-mtz", false)
+    validateCompleteNoMtzSeparation!(app)
+    info["completeMtzEnabled"] = string(!no_complete_mtz)
+
     @variable(model, x[a::Arc in A], Bin)
     @variable(model, y[b::Vi in B], Bin)
     @variable(model, z[i::Int in V], Bin)
     @variable(model, w[i::Int in V], Bin)
-    @variable(model, t[i::Int in V], lower_bound = 0, upper_bound = T)
+    if !no_complete_mtz
+        @variable(model, t[i::Int in V], lower_bound = 0, upper_bound = T)
+    end
 
     @objective(model, Max, sum(block::Vi -> data.profits[block] * y[block], B))
 
@@ -445,11 +453,13 @@ function runCOPCompleteDigraphIPModel(
     @constraint(model, serviced_block[block::Vi in B], sum(a::Arc -> x[a], δ⁺(A, block)) >= y[block])
     @constraint(model, sum(a::Arc -> time(data, a) * x[a], A) <= T - sum(block::Vi -> y[block] * blockTime(data, block), B))
 
-    # Nodes MTZ
-    @constraint(model, t[depot] == 0.0)
-    @constraint(model, mtz[a::Arc in A′], t[last(a)] >= t[first(a)] + x[a] * time(data, a) - (1 - x[a]) * T - x[reverse(a)] * time(data, reverse(a)))
-    @constraint(model, ub1[i::Int in V′], t[i] <= T - sum(block::Vi -> y[block] * blockTime(data, block), B))
-    @constraint(model, ub2[i::Int in V′], t[i] <= z[i] * T)
+    # Nodes MTZ (optional; Walk-CBRP-Lazy / Walk-CBRP-Cut disable via --no-complete-mtz)
+    if !no_complete_mtz
+        @constraint(model, t[depot] == 0.0)
+        @constraint(model, mtz[a::Arc in A′], t[last(a)] >= t[first(a)] + x[a] * time(data, a) - (1 - x[a]) * T - x[reverse(a)] * time(data, reverse(a)))
+        @constraint(model, ub1[i::Int in V′], t[i] <= T - sum(block::Vi -> y[block] * blockTime(data, block), B))
+        @constraint(model, ub2[i::Int in V′], t[i] <= z[i] * T)
+    end
 
     # improvements
     @constraint(model, block3[block::Vi in B], y[block] - sum(x[a] for i::Int in block for a::Arc in δ⁺(A, i) if length(nodes_blocks[i]) == 1) >= 0)
@@ -549,11 +559,15 @@ function runCOPCompleteDigraphIPModel(
         elseif sep_engine == "callback"
             _set_cplex_threads!(model, 1)
             ctx::CompleteSubtourSepContext = buildCompleteSubtourSepContext(data, model, app)
+            complete_sec_mode::String = completeSecMode(app)
+            info["completeSecMode"] = complete_sec_mode
             callback_stats = CompleteSubtourCallbackStats(
                 0, 0, 0.0;
                 user_cut_max_depth=secUserCutMaxDepth(app),
             )
-            registerCompleteSubtourSeparationCallback!(model, ctx, callback_stats)
+            registerCompleteSubtourSeparationCallback!(
+                model, ctx, callback_stats; sec_mode=complete_sec_mode,
+            )
         end
     else
         info["pooledSubtourCutsSeeded"] = "0"

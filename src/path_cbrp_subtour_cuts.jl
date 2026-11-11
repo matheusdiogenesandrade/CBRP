@@ -68,6 +68,18 @@ function validatePathCbrpNoMtzSeparation!(app::Dict{String,Any})::Nothing
     return nothing
 end
 
+"""
+Path callback SEC mode: `both` = user cuts at RELAXATION + lazy at CANDIDATE;
+`lazy` = integer CANDIDATE lazy SECs only (skip fractional user cuts).
+"""
+function pathSecMode(app::Dict{String,Any})::String
+    mode::String = String(strip(String(get(app, "path-sec-mode", "both"))))
+    mode in ("both", "lazy") || throw(ArgumentError(
+        "path-sec-mode must be both or lazy (got $(repr(mode)))",
+    ))
+    return mode
+end
+
 """Static data for Path-CBRP max-flow subtour separation (root loop or callback)."""
 struct PathSubtourSepContext
     model::Model
@@ -586,8 +598,12 @@ function pathCallbackSolutionIsInteger(
 end
 
 """
-Register a single CPLEX callback: user cuts at LP relaxations (nodes up to
-`stats.user_cut_max_depth`), lazy cuts at integer candidates (every node).
+Register a Path SEC CPLEX callback.
+
+- `sec_mode == "both"` (default): user cuts at LP relaxations (nodes up to
+  `stats.user_cut_max_depth`) and lazy cuts at integer candidates (every node).
+- `sec_mode == "lazy"`: register `CANDIDATE` only; fractional RELAXATION points are
+  never separated (Path-CBRP-Lazy). Integer candidates still run DFS lazy SECs.
 
 CPLEX.jl convention (see `CPLEX/test/MathOptInterface/MOI_callbacks.jl`):
 - `CPX_CALLBACKCONTEXT_RELAXATION` → `MOI.UserCut` (max-flow `findViolatedPathSubtourCuts`)
@@ -600,12 +616,17 @@ Do not use `callback_node_status` here: for generic callbacks CPLEX.jl maps ever
 function registerPathSubtourSeparationCallback!(
     model::Model,
     ctx::PathSubtourSepContext,
-    stats::PathSubtourCallbackStats,
+    stats::PathSubtourCallbackStats;
+    sec_mode::String="both",
 )::Nothing
+    sec_mode in ("both", "lazy") || throw(ArgumentError(
+        "path-sec-mode must be both or lazy (got $(repr(sec_mode)))",
+    ))
+    use_user_cuts::Bool = sec_mode == "both"
     function path_subtour_sep_cb(cb_data::CPLEX.CallbackContext, context_id::Clong)
         n_added::Int = 0
         sep_elapsed::Float64 = 0.0
-        if context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+        if use_user_cuts && context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
             if !secUserCutDepthAllowed(stats.user_cut_max_depth, callbackNodeDepth(cb_data))
                 stats.n_user_skipped_depth += 1
                 return nothing
@@ -657,8 +678,11 @@ function registerPathSubtourSeparationCallback!(
         end
         return nothing
     end
-    ctx_mask::UInt16 =
+    ctx_mask::UInt16 = if use_user_cuts
         CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE | CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+    else
+        CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+    end
     MOI.set(model, CPLEX.CallbackFunction(ctx_mask), path_subtour_sep_cb)
     return nothing
 end

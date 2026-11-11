@@ -666,6 +666,27 @@ end
             "subcycle-separation-engine" => "callback",
         ),
     )
+    @test completeSecMode(Dict{String,Any}()) == "both"
+    @test completeSecMode(Dict{String,Any}("complete-sec-mode" => "lazy")) == "lazy"
+    @test completeSecMode(Dict{String,Any}("complete-sec-mode" => "user")) == "user"
+    @test_throws ArgumentError completeSecMode(Dict{String,Any}("complete-sec-mode" => "all"))
+    @test_throws ArgumentError validateCompleteNoMtzSeparation!(Dict{String,Any}(
+        "no-complete-mtz" => true,
+        "subcycle-separation" => "none",
+        "subcycle-separation-engine" => "callback",
+    ))
+    @test_throws ArgumentError validateCompleteNoMtzSeparation!(Dict{String,Any}(
+        "no-complete-mtz" => true,
+        "subcycle-separation" => "first",
+        "subcycle-separation-engine" => "callback",
+        "complete-sec-mode" => "user",
+    ))
+    validateCompleteNoMtzSeparation!(Dict{String,Any}(
+        "no-complete-mtz" => true,
+        "subcycle-separation" => "first",
+        "subcycle-separation-engine" => "callback",
+        "complete-sec-mode" => "lazy",
+    ))
 end
 
 @testset "Complete digraph SEC callback smoke (CPLEX)" begin
@@ -703,10 +724,82 @@ end
         ok[] || @test_skip "CPLEX unavailable or complete digraph callback solver error"
         @test info !== nothing
         @test get(info, "subcycleSeparationEngine", "") == "callback"
+        @test get(info, "completeSecMode", "") == "both"
+        @test get(info, "completeMtzEnabled", "") == "true"
         @test haskey(info, "maxFlowUserCuts")
         @test parse(Int, get(info, "maxFlowUserCuts", "0")) >= 0
         @test get(info, "userCutMaxDepth", "") == "0"
         @test parse(Int, get(info, "userCutSkippedDepth", "-1")) >= 0
+    end
+end
+
+@testset "Walk-CBRP lazy / VI smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "campinas-sparse", "1.sbrp")
+    if !isfile(inst)
+        @test_skip "Campinas fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        data, _, _ = readSBRPData(Dict{String,Any}(
+            "instance" => inst,
+            "vehicle-time-limit" => "120",
+            "instance-type" => "matheus",
+            "cluster-size-profits" => false,
+            "unitary-profits" => false,
+        ))
+        ok_lazy::Ref{Bool} = Ref(false)
+        info_lazy::Union{Nothing,Dict{String,String}} = nothing
+        try
+            _, info_lazy = runCOPCompleteDigraphIPModel(data, Dict{String,Any}(
+                "time-limit" => "20",
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+                "complete-sec-mode" => "lazy",
+                "no-complete-mtz" => true,
+                "intersection-cuts" => false,
+                "y-integer" => false,
+                "z-integer" => false,
+                "w-integer" => false,
+            ))
+            ok_lazy[] = true
+        catch e
+            if e isa ArgumentError
+                rethrow(e)
+            end
+        end
+        ok_lazy[] || @test_skip "CPLEX unavailable or Walk-CBRP-Lazy solver error"
+        if info_lazy !== nothing
+            @test get(info_lazy, "completeSecMode", "") == "lazy"
+            @test get(info_lazy, "completeMtzEnabled", "") == "false"
+            @test parse(Int, get(info_lazy, "maxFlowUserCuts", "-1")) == 0
+        end
+
+        ok_vi::Ref{Bool} = Ref(false)
+        info_vi::Union{Nothing,Dict{String,String}} = nothing
+        try
+            _, info_vi = runCOPCompleteDigraphIPModel(data, Dict{String,Any}(
+                "time-limit" => "20",
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+                "complete-sec-mode" => "user",
+                "intersection-cuts" => true,
+                "y-integer" => false,
+                "z-integer" => false,
+                "w-integer" => false,
+            ))
+            ok_vi[] = true
+        catch e
+            if e isa ArgumentError
+                rethrow(e)
+            end
+        end
+        ok_vi[] || @test_skip "CPLEX unavailable or Walk-CBRP-VI solver error"
+        if info_vi !== nothing
+            @test get(info_vi, "completeSecMode", "") == "user"
+            @test get(info_vi, "completeMtzEnabled", "") == "true"
+            @test parse(Int, get(info_vi, "maxFlowLazyCuts", "-1")) == 0
+        end
     end
 end
 
@@ -731,6 +824,9 @@ end
     @test_throws ArgumentError validatePathCbrpNoMtzSeparation!(app_none)
     @test_throws ArgumentError validatePathCbrpNoMtzSeparation!(app_root)
     validatePathCbrpNoMtzSeparation!(app_ok)
+    @test pathSecMode(Dict{String,Any}()) == "both"
+    @test pathSecMode(Dict{String,Any}("path-sec-mode" => "lazy")) == "lazy"
+    @test_throws ArgumentError pathSecMode(Dict{String,Any}("path-sec-mode" => "user"))
 
     inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
     if isfile(inst)
@@ -895,6 +991,46 @@ end
         @test info !== nothing
         @test get(info, "pathCbrpMtzEnabled", "") == "false"
         @test get(info, "subcycleSeparationEngine", "") == "callback"
+        @test get(info, "pathSecMode", "") == "both"
+    end
+end
+
+@testset "Path-CBRP lazy-only SEC smoke (CPLEX)" begin
+    root::String = joinpath(@__DIR__, "..")
+    inst::String = joinpath(root, "data", "carlos", "notified-alto-santo", "notified-alto-santo-1000-2021.txt")
+    if !isfile(inst)
+        @test_skip "Carlos fixture missing"
+    else
+        include(joinpath(root, "src", "data.jl"))
+        include(joinpath(root, "src", "model.jl"))
+        ok::Ref{Bool} = Ref(false)
+        info::Union{Nothing,Dict{String,String}} = nothing
+        try
+            data = readSBRPDataCarlos(Dict{String,Any}(
+                "instance" => inst,
+                "vehicle-time-limit" => "120",
+                "no-cbrp-metric-closure" => true,
+            ))[1]
+            solve_app = Dict{String,Any}(
+                "time-limit" => "15",
+                "no-path-cbrp-mtz" => true,
+                "subcycle-separation" => "first",
+                "subcycle-separation-engine" => "callback",
+                "path-sec-mode" => "lazy",
+            )
+            _, info = runPathCbrpMipModel(data, solve_app)
+            ok[] = true
+        catch e
+            if e isa ArgumentError
+                rethrow(e)
+            end
+        end
+        ok[] || @test_skip "CPLEX unavailable or lazy-only SEC solver error"
+        @test info !== nothing
+        @test get(info, "pathCbrpMtzEnabled", "") == "false"
+        @test get(info, "pathSecMode", "") == "lazy"
+        @test get(info, "subcycleSeparationEngine", "") == "callback"
+        @test parse(Int, get(info, "maxFlowUserCuts", "-1")) == 0
     end
 end
 

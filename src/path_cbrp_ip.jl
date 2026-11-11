@@ -201,12 +201,16 @@ function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPS
         _set_cplex_threads!(model, 1)
         ctx::PathSubtourSepContext =
             buildPathSubtourSepContext(data, model, app, A, y_meta, out_idx, depot)
+        path_sec_mode::String = pathSecMode(app)
+        info["pathSecMode"] = path_sec_mode
         callback_stats = PathSubtourCallbackStats(
             0, 0, 0.0;
             dedup_user_cuts=get(app, "path-sec-dedup-user-cuts", false),
             user_cut_max_depth=secUserCutMaxDepth(app),
         )
-        registerPathSubtourSeparationCallback!(model, ctx, callback_stats)
+        registerPathSubtourSeparationCallback!(
+            model, ctx, callback_stats; sec_mode=path_sec_mode,
+        )
     end
 
     info["solverTime"] = string(@elapsed optimize!(model))

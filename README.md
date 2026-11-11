@@ -39,7 +39,8 @@ Campinas Path batches:
 | Batch | Flags | Notes |
 |-------|--------|--------|
 | `batchs/campinas-*/path_cbrp_no_warm.batch` | Path, no simplify, default SEC **root** | Baseline sparse Path |
-| `batchs/campinas-*/path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** | Recommended Campinas campaign (8×80) |
+| `batchs/campinas-*/path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** + `--path-sec-dedup-user-cuts` + `--sec-user-cut-max-depth -1` | Paper Path campaign (8 groups) |
+| `batchs/campinas-*/path_cbrp_mtz_simp.batch` | Path + `--simplify-street-graph` + MTZ + `--subcycle-separation none` | Paper Path-CBRP-MTZ (SIMP) campaign (8 groups); runner `run_campinas_path_mtz_simp.sh` |
 
 Run all eight simp+callback groups (from this directory):
 
@@ -51,6 +52,86 @@ bash run_campinas_path_simp_callback.sh campinas-random campinas-sparse
 
 Logs go to `logs/path_simp_callback_<group>.log`. Extract CSV summaries with `grep -A1 '^instance,' logs/path_simp_callback_*.log`. Set `JULIA_THREADS` (default 1) and `PATH_CBRP_SEC_CALLBACK_LOG=0` (default in the script) as needed. Prefer **callback** over **root** when using street-graph simplification: the root LP cut loop can fail to terminate on some simplified Campinas instances.
 
+## Paper experiments
+
+The paper reports Path / Complete / BRKGA campaigns for Campinas and Carlos. Path and Complete each have corpus-specific variant batches under **Real-World (Carlos)** and **Synthetic (Matheus)**. Example Campinas folder: `batchs/campinas-sparse-unitary-profits/`.
+
+| Method | Campinas batch | Carlos batch | Setting |
+|--------|----------------|--------------|---------|
+| **Path** | `path_cbrp_mtz_simp.batch` (see **Synthetic (Matheus)**) | see **Real-World (Carlos)** below | Campinas Path-CBRP-MTZ: MTZ + `--simplify-street-graph` + `--subcycle-separation none`. Carlos Path: MTZ / Cut / Lazy (`path_cbrp_callback.batch` left unused). |
+| **Complete** | see **Synthetic (Matheus)** Walk-CBRP | see **Real-World (Carlos)** Walk-CBRP | Walk-CBRP-Lazy / Cut / VI (`walk_cbrp_*.batch`; `complete_callback.batch` left unused on both corpora). |
+| **BRKGA** | `brkga.batch` | `brkga.batch` | `--brkga` (Carlos: also `--instance-type carlos`). |
+
+Unitary Campinas groups also pass `--unitary-profits` on Path/Complete/BRKGA lines; that is group-specific, not a method property.
+
+### Real-World (Carlos) instances
+
+Paper batches under `batchs/carlos/notified-alto-santo` and `batchs/carlos/notified-limoeiro` (Path/Walk instance lists match the unused `path_cbrp_callback.batch` / `complete_callback.batch`; AS/LN are already OSMnx-simplified, so no `--simplify-street-graph`):
+
+| Variant | Batch | Flags |
+|---------|-------|--------|
+| **Path-CBRP-MTZ** | `path_cbrp_mtz.batch` | MTZ on + `--subcycle-separation none` (no SEC callback) |
+| **Path-CBRP-Cut** | `path_cbrp_cut.batch` | `--no-path-cbrp-mtz` + callback `--path-sec-mode both` (user + lazy) + `--path-sec-dedup-user-cuts` + `--sec-user-cut-max-depth -1` |
+| **Path-CBRP-Lazy** | `path_cbrp_lazy.batch` | `--no-path-cbrp-mtz` + callback `--path-sec-mode lazy` (integer CANDIDATE lazy SECs only; no fractional user cuts) |
+| **Walk-CBRP-Lazy** | `walk_cbrp_lazy.batch` | `--instance-type carlos` + `--no-complete-mtz` + callback `--complete-sec-mode lazy` (no intersection cuts) |
+| **Walk-CBRP-Cut** | `walk_cbrp_cut.batch` | `--instance-type carlos` + `--no-complete-mtz` + callback `--complete-sec-mode both` + `--sec-user-cut-max-depth 0` (no intersection cuts) |
+| **Walk-CBRP-VI** | `walk_cbrp_vi.batch` | `--instance-type carlos` + MTZ + `--intersection-cuts` + callback `--complete-sec-mode user` + `--sec-user-cut-max-depth 0` |
+| **BRKGA** | `brkga.batch` | `--brkga --instance-type carlos` |
+
+### Synthetic (Matheus) instances
+
+Paper batches under each of the eight `batchs/campinas-*` groups. Path-CBRP-MTZ differs from Carlos only by adding `--simplify-street-graph` (Matheus sparse digraphs are not pre-simplified). Unitary groups also pass `--unitary-profits` on Path/Complete/BRKGA lines. Walk-CBRP flags match Carlos (without `--instance-type carlos`); `complete_callback.batch` is left unused.
+
+| Variant | Batch | Flags |
+|---------|-------|--------|
+| **Path-CBRP-MTZ** | `path_cbrp_mtz_simp.batch` | MTZ on + `--simplify-street-graph` + `--subcycle-separation none` (no SEC callback) |
+| **Walk-CBRP-Lazy** | `walk_cbrp_lazy.batch` | `--no-complete-mtz` + callback `--complete-sec-mode lazy` (no intersection cuts) |
+| **Walk-CBRP-Cut** | `walk_cbrp_cut.batch` | `--no-complete-mtz` + callback `--complete-sec-mode both` + `--sec-user-cut-max-depth 0` (no intersection cuts) |
+| **Walk-CBRP-VI** | `walk_cbrp_vi.batch` | MTZ on + `--intersection-cuts` + callback `--complete-sec-mode user` + `--sec-user-cut-max-depth 0` (user SECs at root only; no lazy context) |
+| **BRKGA** | `brkga.batch` | `--brkga` |
+
+Path-CBRP-MTZ runner:
+
+```sh
+bash run_campinas_path_mtz_simp.sh
+bash run_campinas_path_mtz_simp.sh campinas-sparse-unitary-profits
+bash run_campinas_path_mtz_simp.sh campinas-random --instance 3,7,40-45
+```
+
+Walk-CBRP runners (`--variant lazy|cut|vi`):
+
+```sh
+bash run_campinas_walk_cbrp.sh --variant vi
+bash run_campinas_walk_cbrp.sh --variant lazy campinas-sparse-unitary-profits
+bash run_campinas_walk_cbrp.sh --variant cut campinas-random --instance 3,7,40-45
+```
+
+Logs: `logs/path_mtz_simp_<group>.log`, `logs/walk_cbrp_<variant>_<group>.log` (reruns with `--instance` use a timestamped `.rerun-*.log`). Summaries: `grep -A1 '^instance,' logs/path_mtz_simp_*.log` / `logs/walk_cbrp_*.log`.
+
+Examples (from this directory):
+
+```sh
+# Campinas Path-CBRP-MTZ + SIMP
+bash run_campinas_path_mtz_simp.sh campinas-sparse-unitary-profits
+
+# Campinas Walk-CBRP (Complete) variants
+bash run_campinas_walk_cbrp.sh --variant lazy campinas-sparse-unitary-profits
+bash run_campinas_walk_cbrp.sh --variant cut campinas-sparse-unitary-profits
+bash run_campinas_walk_cbrp.sh --variant vi campinas-sparse-unitary-profits
+
+# Single Campinas BRKGA batch
+julia --threads=1 --project=. src/run.jl --batch batchs/campinas-sparse-unitary-profits/brkga.batch
+
+# Carlos Path / Walk-CBRP / BRKGA
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_mtz.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_cut.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_lazy.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_lazy.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_cut.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_vi.batch
+julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/brkga.batch
+```
+
 **Street digraph simplification** (`--simplify-street-graph`): OSMnx-style topological contraction of interstitial (mostly degree-2) corridors on the **sparse** street digraph before Path (or `--nosolve`). Requires `--no-cbrp-metric-closure`. Depot and every block-member node are forced endpoints so block lists and Path service vertices are preserved; contracted corridor length is the sum of segment lengths. Carlos AS/LN files were typically generated with Python OSMnx `simplify_graph` already, so the flag mainly helps Campinas Matheus Path. Logs `|V|` / `|A|` before → after.
 
 **Path-CBRP subtour elimination:** `--subcycle-separation` (`first`|`best`|`all`|`none`, default `all`) selects which violated SECs to add per separation round. `--subcycle-separation-engine` (`root`|`callback`, default `root`) chooses the host:
@@ -58,11 +139,18 @@ Logs go to `logs/path_simp_callback_<group>.log`. Extract CSV summaries with `gr
 | Engine | Behavior |
 |--------|----------|
 | `root` | Pre-MIP LP cutting-plane loop (max-flow on relaxed `x`,`y`), then binary MIP solve |
-| `callback` | Single CPLEX generic callback: Path SECs as **user cuts** at each `RELAXATION` (fractional LP) and **lazy constraints** at integer `CANDIDATE` points (requires `--path-cbrp-mip`; can be much slower on large Carlos instances) |
+| `callback` | Single CPLEX generic callback (requires `--path-cbrp-mip`); see `--path-sec-mode` below |
 
-**Optional no MTZ:** `--no-path-cbrp-mtz` skips compact arc MTZ constraints (keeps `w` and depot bound). Requires `--path-cbrp-mip` and `--subcycle-separation-engine callback` with `--subcycle-separation` not `none` (otherwise the run errors: connectivity must come from SEC separation).
+`--path-sec-mode` (`both`|`lazy`, default `both`) selects which callback contexts run:
 
-Inequalities: user cuts (fractional points, max-flow) use \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Lazy cuts (integer candidates) are separated exactly by a DFS over the support \(\{a : x_a > 0.5\}\) (`findDisconnectedPathSubtourCuts`): for each serviced \(y_{b,i}\) whose component \(C\) misses the depot, add the depot-rooted cut \(\sum_{a \in \delta^{+}(C)} x_a \ge y_{b,i}\) (dominates the pairwise form and also cuts subtours when the depot tour services nothing). Logs include `maxFlowCuts` (total), `maxFlowUserCuts`, `maxFlowLazyCuts`, `maxFlowCutsTime`, `subcycleSeparationEngine`, and `pathCbrpMtzEnabled`. Use `none` to skip SECs (faster, MTZ-only when MTZ is enabled).
+| Mode | Behavior |
+|------|----------|
+| `both` (default) | **User cuts** at each `RELAXATION` (fractional LP) and **lazy constraints** at integer `CANDIDATE` points |
+| `lazy` | Register `CANDIDATE` only: skip fractional user cuts; run DFS lazy SECs on integer candidates (Path-CBRP-Lazy) |
+
+**Optional no MTZ:** `--no-path-cbrp-mtz` skips compact arc MTZ constraints (keeps `w` and depot bound). Requires `--path-cbrp-mip` and `--subcycle-separation-engine callback` with `--subcycle-separation` not `none` (otherwise the run errors: connectivity must come from SEC separation). Paper Path-CBRP-Cut / Path-CBRP-Lazy both use this flag.
+
+Inequalities: user cuts (fractional points, max-flow) use \(\sum_{a \in \delta^{+}(S)} x_a \ge y_{b,i} + y_{b',j} - 1\). Lazy cuts (integer candidates) are separated exactly by a DFS over the support \(\{a : x_a > 0.5\}\) (`findDisconnectedPathSubtourCuts`): for each serviced \(y_{b,i}\) whose component \(C\) misses the depot, add the depot-rooted cut \(\sum_{a \in \delta^{+}(C)} x_a \ge y_{b,i}\) (dominates the pairwise form and also cuts subtours when the depot tour services nothing). Logs include `maxFlowCuts` (total), `maxFlowUserCuts`, `maxFlowLazyCuts`, `maxFlowCutsTime`, `subcycleSeparationEngine`, `pathSecMode`, and `pathCbrpMtzEnabled`. Use `none` to skip SECs (faster, MTZ-only when MTZ is enabled).
 
 **User-cut dedup and threshold:** every max-flow cut gets a canonical key \((S, \{k_{y_i}, k_{y_j}\})\); cuts whose key was already submitted earlier in the solve are counted as duplicates and, with `--path-sec-dedup-user-cuts`, skipped. `--sec-min-violation V` (default `1e-4`, shared with the complete-digraph separation) is the minimum violation for reporting a cut. In both models max-flow runs on capacities truncated to 5 digits (arcs with \(x \le\) `EPS` left out) and only proposes the sets \(S\); violation is always evaluated on the exact values over all of \(\delta^{+}(S)\) (before this, tight cuts looked violated: on `campinas-random/7` with \(V = 10^{-6}\), 97% of 350,911 submitted cuts had exact violation \(\le 0\)). Measured with CPLEX 20.1, 600 s, single runs (time / result):
 
@@ -83,7 +171,17 @@ Extra log columns: `maxFlowUserCutsFound`, `maxFlowUserCutsDup`, `maxFlowUserCut
 | Engine | Behavior |
 |--------|----------|
 | `root` (default) | Pre-MIP `getSubtourCuts` LP loop (max-flow on `x`,`z`,`w`), static inequalities added to the model, then `restoreCompleteMipPreprocessor!` (automatic LP + presolve) before binary MIP |
-| `callback` | No pre-MIP subtour loop; CPLEX callback with user cuts at `RELAXATION` and lazy cuts at integer `CANDIDATE` (same CPLEX.jl pattern as Path-CBRP) |
+| `callback` | No pre-MIP subtour loop; CPLEX callback (see `--complete-sec-mode`) |
+
+`--complete-sec-mode` (`both`|`lazy`|`user`, default `both`):
+
+| Mode | Behavior |
+|------|----------|
+| `both` (default) | User cuts at `RELAXATION` + lazy at integer `CANDIDATE` |
+| `lazy` | Register `CANDIDATE` only (Walk-CBRP-Lazy) |
+| `user` | Register `RELAXATION` only (Walk-CBRP-VI; needs MTZ for integer connectivity) |
+
+**Optional no MTZ (Complete):** `--no-complete-mtz` skips node MTZ / `t` variables. Requires callback SEC with `--complete-sec-mode both` or `lazy` (not `user`). Walk-CBRP-Lazy / Walk-CBRP-Cut use this flag and omit `--intersection-cuts`. Logs: `completeSecMode`, `completeMtzEnabled`.
 
 Cut template: \(\sum_{a \in \delta^{+}(S)} x_a \ge \sum_{a \in \delta^{+}(\{source,target\})} x_a - 1\) (see `findViolatedCompleteSubtourCuts`). Pooled cuts (`--reuse-cuts`) are still seeded as static rows before the MIP when using `callback`. Debug log prefix: `[CompleteSEC]`; disable with `COMPLETE_SEC_CALLBACK_LOG=0`. Prefer `--subcycle-separation first` for large metric-closure instances.
 
@@ -152,6 +250,60 @@ Use the **same** `INSTANCE.txt`, `--vehicle-time-limit`, and `--drop-zero-profit
 julia --threads=1 --project=. experiments/path_cbrp_time_sweep.jl \
   data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
   --out-csv /tmp/path_sweep.csv --min-T 10 --time-step 5 --max-T 400 --max-iterations 100 --time-limit 30
+```
+
+### BRKGA time-budget sweep
+
+Script: [`experiments/brkga_time_sweep.jl`](experiments/brkga_time_sweep.jl).
+
+Repeatedly runs `runCOPBRKGAModel` on one **Carlos** instance with **metric closure** (Carlos reader default; not Path-CBRP sparse), while increasing the vehicle budget `data.T` (minutes). Stops when all positive-profit blocks are serviced, an exception occurs, or a cap is hit. Does **not** go through `src/run.jl` or append to `logs/log`; results go only to `--out-csv`.
+
+**Stop criteria** (written in the CSV `terminal` column):
+
+| `terminal` | Meaning |
+|------------|---------|
+| `all_positive_profit_blocks` | `num_serviced_blocks >= num_positive_profit_blocks` (success) |
+| `max_T` | Next step would exceed `--max-T` |
+| `max_iterations` | Hit `--max-iterations` |
+| `error` | Exception from `runCOPBRKGAModel` (`error_message` filled) |
+
+**Flags:**
+
+| Flag | Default | Role |
+|------|---------|------|
+| `instance` (positional) | required | Carlos `.txt` path |
+| `--brkga-conf` | required | BRKGA wrapper `.conf` (same role as `src/run.jl --brkga-conf`) |
+| `--out-csv` | required | Output CSV path (header + one row per solve) |
+| `--min-T` | `10` | First budget \(T\) in minutes |
+| `--time-step` | `5` | Increase \(T\) by this many minutes each iteration |
+| `--max-T` | `400` | Inclusive upper cap on \(T\) (minutes) |
+| `--max-iterations` | `100` | Maximum number of BRKGA solves |
+| `--time-limit` | `"0"` | Wall seconds per BRKGA solve; `0` → use `maximum_time` from `--brkga-conf` |
+| `--drop-zero-profit-blocks` | off | Drop profit-0 blocks before the sweep (same as `src/run.jl`) |
+
+**CSV columns** (same layout as `experiments/complete_digraph_time_sweep.jl` for comparison; IP-only fields stay empty for BRKGA unless the solver fills them):
+
+`iteration`, `budget_T`, `num_blocks`, `num_positive_profit_blocks`, `num_serviced_blocks`, `terminal`, `cost`, `solverTime`, `relativeGAP`, `nodeCount`, `yLPTime`, `maxFlowCutsTime`, `maxFlowCuts`, `intersectionCutsTime`, `phase1Time`, `noFeasibleSolution`, `error_message`.
+
+Example (from this directory):
+
+```sh
+julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --brkga-conf conf/config.conf \
+  --out-csv /tmp/brkga_sweep.csv \
+  --min-T 10 --time-step 5 --max-T 400 --max-iterations 100
+```
+
+Optional per-solve wall cap and zero-profit drop:
+
+```sh
+julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --brkga-conf conf/config.conf \
+  --out-csv /tmp/brkga_sweep.csv \
+  --min-T 10 --time-step 5 --max-T 400 --time-limit 900 \
+  --drop-zero-profit-blocks
 ```
 
 You can get the parameters list by typing:

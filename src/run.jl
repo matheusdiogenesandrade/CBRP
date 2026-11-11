@@ -56,6 +56,12 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--intersection-cuts"
         help = "Intersection cuts for the complete model"
         action = :store_true
+        "--no-complete-mtz"
+        help = "Complete digraph IP: skip node MTZ (requires --ip without --path-cbrp-mip, and callback SEC with complete-sec-mode both|lazy)"
+        action = :store_true
+        "--complete-sec-mode"
+        help = "Complete digraph callback SEC: both = user+lazy (default); lazy = CANDIDATE only; user = RELAXATION only (needs MTZ)"
+        default = "both"
         "--subcycle-separation"
         help = "Subcycle separation strategy: first|best|all|none (Path-CBRP and complete model)"
         default = "all"
@@ -89,6 +95,9 @@ function parse_commandline(args_array::Vector{String}, appfolder::String)::Union
         "--path-sec-dedup-user-cuts"
         help = "Path-CBRP callback SEC: skip user cuts already submitted earlier in the solve (duplicates are always counted)"
         action = :store_true
+        "--path-sec-mode"
+        help = "Path-CBRP callback SEC: both = user+lazy (default); lazy = integer CANDIDATE lazy SECs only (no fractional user cuts)"
+        default = "both"
         "--sec-user-cut-max-depth"
         help = "SEC callback engine (complete digraph + Path-CBRP): deepest B&B node for fractional (user-cut) SEC separation; 0 = root only, -1 = unlimited. Lazy SECs run at every node."
         arg_type = Int
@@ -113,7 +122,7 @@ end
 # log function
 function log(app::Dict{String,Any}, info::Dict{String,String})
 
-    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathCbrpMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex", "maxFlowUserCutsFound", "maxFlowUserCutsDup", "maxFlowUserCutsNonViolated", "maxFlowUserCutsViolMin", "maxFlowUserCutsViolMean", "maxFlowUserCutsViolMax", "userCutMaxDepth", "userCutSkippedDepth"]
+    columns::Vector{String} = ["instance", "|V|", "|A|", "|B|", "T", "model", "initialLP", "yLP", "yLPTime", "zLP", "zLPTime", "wLP", "wLPTime", "maxFlowLP", "maxFlowCuts", "maxFlowCutsTime", "maxFlowUserCuts", "maxFlowLazyCuts", "subcycleSeparationEngine", "pathSecMode", "pathCbrpMtzEnabled", "completeSecMode", "completeMtzEnabled", "lazyCuts", "cost", "bestBound", "solverTime", "relativeGAP", "nodeCount", "integerCount", "phase1Time", "meters", "tourMinutes", "blocksMeters", "blocksMinutes", "numVisitedBlocks", "intersectionCutsTime", "intersectionCuts1", "intersectionCuts2", "numVisitedNodes", "numOriginalVisitedNodes", "numRepeatedNodes", "numRepeatedArcs", "avgDetourIndex", "maxFlowUserCutsFound", "maxFlowUserCutsDup", "maxFlowUserCutsNonViolated", "maxFlowUserCutsViolMin", "maxFlowUserCutsViolMean", "maxFlowUserCutsViolMax", "userCutMaxDepth", "userCutSkippedDepth"]
 
     info["instance"] = last(split(app["instance"], "/"; keepempty=false))
     info["instance"] = first(split(info["instance"], "."; keepempty=false))
@@ -460,6 +469,41 @@ function run(app::Dict{String,Any})
         get(app, "path-cbrp-mip", false) || error("--path-sec-dedup-user-cuts requires --path-cbrp-mip")
         sep_engine == "callback" ||
             error("--path-sec-dedup-user-cuts requires --subcycle-separation-engine callback")
+    end
+    path_sec_mode_chk::String = String(strip(String(get(app, "path-sec-mode", "both"))))
+    path_sec_mode_chk in ("both", "lazy") ||
+        error("--path-sec-mode must be both or lazy (got $(repr(path_sec_mode_chk)))")
+    if path_sec_mode_chk == "lazy"
+        get(app, "path-cbrp-mip", false) || error("--path-sec-mode lazy requires --path-cbrp-mip")
+        sep_engine == "callback" ||
+            error("--path-sec-mode lazy requires --subcycle-separation-engine callback")
+        sep_mode_chk == "none" &&
+            error("--path-sec-mode lazy requires subcycle-separation != none")
+    end
+    complete_sec_mode_chk::String = String(strip(String(get(app, "complete-sec-mode", "both"))))
+    complete_sec_mode_chk in ("both", "lazy", "user") ||
+        error("--complete-sec-mode must be both, lazy, or user (got $(repr(complete_sec_mode_chk)))")
+    if complete_sec_mode_chk != "both"
+        get(app, "path-cbrp-mip", false) &&
+            error("--complete-sec-mode applies to the complete digraph IP (omit --path-cbrp-mip)")
+        app["ip"] || error("--complete-sec-mode requires --ip")
+        sep_engine == "callback" ||
+            error("--complete-sec-mode $(complete_sec_mode_chk) requires --subcycle-separation-engine callback")
+        sep_mode_chk == "none" &&
+            error("--complete-sec-mode $(complete_sec_mode_chk) requires subcycle-separation != none")
+    end
+    if get(app, "no-complete-mtz", false)
+        get(app, "path-cbrp-mip", false) &&
+            error("--no-complete-mtz applies to the complete digraph IP (omit --path-cbrp-mip)")
+        app["ip"] || error("--no-complete-mtz requires --ip")
+        if sep_mode_chk == "none" || sep_engine != "callback"
+            error(
+                "--no-complete-mtz requires Complete SEC callback separation " *
+                "(use e.g. --subcycle-separation all --subcycle-separation-engine callback)",
+            )
+        end
+        complete_sec_mode_chk == "user" &&
+            error("--no-complete-mtz cannot use --complete-sec-mode user (need lazy SECs)")
     end
     get(app, "sec-min-violation", 1e-4) >= 0 || error("--sec-min-violation must be >= 0")
     get(app, "sec-user-cut-max-depth", 0) >= -1 || error("--sec-user-cut-max-depth must be >= -1")
