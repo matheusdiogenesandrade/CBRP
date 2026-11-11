@@ -5,6 +5,9 @@ Beforehand, make sure  you had exported the required environment variables.
 export CPLEX_STUDIO_DIR="/opt/ibm/ILOG/CPLEX_Studio201/"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ibm/ILOG/CPLEX_Studio201/opl/bin/x86-64_linux/
 export JULIA_COPY_STACKS=1
+# Optional: custom Julia for paper runners (default: julia on PATH)
+# export JULIA_BIN=/opt/julia-1.10.5/bin/julia
+# export JULIA_THREADS=1
 ```
 
 ## Docker IP with CPLEX
@@ -34,23 +37,15 @@ julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solut
 
 **Sparse digraph + Path-CBRP MILP:** use `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Works for **Campinas (Matheus)** (default `--instance-type matheus`) and **Carlos** (`--instance-type carlos`). Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
 
-Campinas Path batches:
+Campinas Path batches (legacy / exploratory under `batchs/campinas-*`; paper Path uses the SIMP triad below):
 
 | Batch | Flags | Notes |
 |-------|--------|--------|
-| `batchs/campinas-*/path_cbrp_no_warm.batch` | Path, no simplify, default SEC **root** | Baseline sparse Path |
-| `batchs/campinas-*/path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** + `--path-sec-dedup-user-cuts` + `--sec-user-cut-max-depth -1` | Paper Path campaign (8 groups) |
-| `batchs/campinas-*/path_cbrp_mtz_simp.batch` | Path + `--simplify-street-graph` + MTZ + `--subcycle-separation none` | Paper Path-CBRP-MTZ (SIMP) campaign (8 groups); runner `run_campinas_path_mtz_simp.sh` |
+| `path_cbrp_no_warm.batch` | Path, no simplify, default SEC **root** | Baseline sparse Path |
+| `path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** | Legacy simp+callback; moved runner under `scripts/legacy/` |
+| `path_cbrp_{mtz,cut,lazy}_simp.batch` | Path + `--simplify-street-graph` + MTZ / Cut / Lazy | Paper Path-CBRP (SIMP) campaign (8 groups); runners `run_campinas_path_{mtz,cut,lazy}.sh` |
 
-Run all eight simp+callback groups (from this directory):
-
-```sh
-bash run_campinas_path_simp_callback.sh
-# or a subset:
-bash run_campinas_path_simp_callback.sh campinas-random campinas-sparse
-```
-
-Logs go to `logs/path_simp_callback_<group>.log`. Extract CSV summaries with `grep -A1 '^instance,' logs/path_simp_callback_*.log`. Set `JULIA_THREADS` (default 1) and `PATH_CBRP_SEC_CALLBACK_LOG=0` (default in the script) as needed. Prefer **callback** over **root** when using street-graph simplification: the root LP cut loop can fail to terminate on some simplified Campinas instances.
+Prefer **callback** over **root** when using street-graph simplification: the root LP cut loop can fail to terminate on some simplified Campinas instances. Paper runners honor `JULIA_BIN` (default `julia` on PATH) and `JULIA_THREADS` (default 1).
 
 ## Paper experiments
 
@@ -58,9 +53,20 @@ The paper reports Path / Complete / BRKGA campaigns for Campinas and Carlos. Pat
 
 | Method | Campinas batch | Carlos batch | Setting |
 |--------|----------------|--------------|---------|
-| **Path** | `path_cbrp_mtz_simp.batch` (see **Synthetic (Matheus)**) | see **Real-World (Carlos)** below | Campinas Path-CBRP-MTZ: MTZ + `--simplify-street-graph` + `--subcycle-separation none`. Carlos Path: MTZ / Cut / Lazy (`path_cbrp_callback.batch` left unused). |
-| **Complete** | see **Synthetic (Matheus)** Walk-CBRP | see **Real-World (Carlos)** Walk-CBRP | Walk-CBRP-Lazy / Cut / VI (`walk_cbrp_*.batch`; `complete_callback.batch` left unused on both corpora). |
+| **Path** | `path_cbrp_{mtz,cut,lazy}_simp.batch` | `path_cbrp_{mtz,cut,lazy}.batch` | Campinas: + `--simplify-street-graph`. Carlos: full street digraph (`path_cbrp_callback.batch` left unused). |
+| **Complete** | `walk_cbrp_{lazy,cut,vi}.batch` | same | Walk-CBRP-Lazy / Cut / VI (`complete_callback.batch` left unused on both corpora). |
 | **BRKGA** | `brkga.batch` | `brkga.batch` | `--brkga` (Carlos: also `--instance-type carlos`). |
+
+**Root runners** (shared engine `scripts/run_paper_batches.sh`; thin wrappers at package root). Defaults: all 8 Campinas groups, or AS+LN for Carlos. Optional positional groups and `--instance` (Campinas: `N` of `N.sbrp`; Carlos: stem / year suffix). Env: `JULIA_BIN` (default `julia`), `JULIA_THREADS` (default `1`). Logs: `logs/{path,walk}_{mtz,cut,lazy,vi}_<group>.log` (reruns with `--instance` use `.rerun-*.log`).
+
+| Runner | Corpus | Batch |
+|--------|--------|-------|
+| `run_campinas_path_{mtz,cut,lazy}.sh` | Campinas | `path_cbrp_{mtz,cut,lazy}_simp.batch` |
+| `run_campinas_walk_{cut,lazy,vi}.sh` | Campinas | `walk_cbrp_{cut,lazy,vi}.batch` |
+| `run_carlos_path_{mtz,cut,lazy}.sh` | Carlos | `path_cbrp_{mtz,cut,lazy}.batch` |
+| `run_carlos_walk_{cut,lazy,vi}.sh` | Carlos | `walk_cbrp_{cut,lazy,vi}.batch` |
+
+Legacy Campinas runners (`run_campinas_{complete_callback,path_simp_callback,path_mtz_simp,walk_cbrp}.sh`, `sh.sh`) live under `scripts/legacy/`.
 
 Unitary Campinas groups also pass `--unitary-profits` on Path/Complete/BRKGA lines; that is group-specific, not a method property.
 
@@ -80,57 +86,42 @@ Paper batches under `batchs/carlos/notified-alto-santo` and `batchs/carlos/notif
 
 ### Synthetic (Matheus) instances
 
-Paper batches under each of the eight `batchs/campinas-*` groups. Path-CBRP-MTZ differs from Carlos only by adding `--simplify-street-graph` (Matheus sparse digraphs are not pre-simplified). Unitary groups also pass `--unitary-profits` on Path/Complete/BRKGA lines. Walk-CBRP flags match Carlos (without `--instance-type carlos`); `complete_callback.batch` is left unused.
+Paper batches under each of the eight `batchs/campinas-*` groups. Path-CBRP differs from Carlos by adding `--simplify-street-graph` (Matheus sparse digraphs are not pre-simplified). Unitary groups also pass `--unitary-profits` on Path/Complete/BRKGA lines. Walk-CBRP flags match Carlos (without `--instance-type carlos`); `complete_callback.batch` is left unused.
 
 | Variant | Batch | Flags |
 |---------|-------|--------|
 | **Path-CBRP-MTZ** | `path_cbrp_mtz_simp.batch` | MTZ on + `--simplify-street-graph` + `--subcycle-separation none` (no SEC callback) |
+| **Path-CBRP-Cut** | `path_cbrp_cut_simp.batch` | `--no-path-cbrp-mtz` + `--simplify-street-graph` + callback `--path-sec-mode both` + `--path-sec-dedup-user-cuts` + `--sec-user-cut-max-depth -1` |
+| **Path-CBRP-Lazy** | `path_cbrp_lazy_simp.batch` | `--no-path-cbrp-mtz` + `--simplify-street-graph` + callback `--path-sec-mode lazy` |
 | **Walk-CBRP-Lazy** | `walk_cbrp_lazy.batch` | `--no-complete-mtz` + callback `--complete-sec-mode lazy` (no intersection cuts) |
 | **Walk-CBRP-Cut** | `walk_cbrp_cut.batch` | `--no-complete-mtz` + callback `--complete-sec-mode both` + `--sec-user-cut-max-depth 0` (no intersection cuts) |
 | **Walk-CBRP-VI** | `walk_cbrp_vi.batch` | MTZ on + `--intersection-cuts` + callback `--complete-sec-mode user` + `--sec-user-cut-max-depth 0` (user SECs at root only; no lazy context) |
 | **BRKGA** | `brkga.batch` | `--brkga` |
 
-Path-CBRP-MTZ runner:
-
-```sh
-bash run_campinas_path_mtz_simp.sh
-bash run_campinas_path_mtz_simp.sh campinas-sparse-unitary-profits
-bash run_campinas_path_mtz_simp.sh campinas-random --instance 3,7,40-45
-```
-
-Walk-CBRP runners (`--variant lazy|cut|vi`):
-
-```sh
-bash run_campinas_walk_cbrp.sh --variant vi
-bash run_campinas_walk_cbrp.sh --variant lazy campinas-sparse-unitary-profits
-bash run_campinas_walk_cbrp.sh --variant cut campinas-random --instance 3,7,40-45
-```
-
-Logs: `logs/path_mtz_simp_<group>.log`, `logs/walk_cbrp_<variant>_<group>.log` (reruns with `--instance` use a timestamped `.rerun-*.log`). Summaries: `grep -A1 '^instance,' logs/path_mtz_simp_*.log` / `logs/walk_cbrp_*.log`.
-
 Examples (from this directory):
 
 ```sh
-# Campinas Path-CBRP-MTZ + SIMP
-bash run_campinas_path_mtz_simp.sh campinas-sparse-unitary-profits
+# Campinas Path-CBRP (SIMP)
+bash run_campinas_path_mtz.sh campinas-sparse-unitary-profits
+bash run_campinas_path_cut.sh campinas-sparse --instance 1,3-5
+bash run_campinas_path_lazy.sh
 
-# Campinas Walk-CBRP (Complete) variants
-bash run_campinas_walk_cbrp.sh --variant lazy campinas-sparse-unitary-profits
-bash run_campinas_walk_cbrp.sh --variant cut campinas-sparse-unitary-profits
-bash run_campinas_walk_cbrp.sh --variant vi campinas-sparse-unitary-profits
+# Campinas Walk-CBRP (Complete)
+bash run_campinas_walk_lazy.sh campinas-sparse-unitary-profits
+bash run_campinas_walk_cut.sh campinas-sparse-unitary-profits
+bash run_campinas_walk_vi.sh campinas-random --instance 3,7,40-45
 
-# Single Campinas BRKGA batch
+# Carlos Path / Walk (AS + LN; aliases AS / LN accepted)
+bash run_carlos_path_mtz.sh
+bash run_carlos_path_cut.sh AS --instance 2016
+bash run_carlos_walk_vi.sh LN
+
+# Single BRKGA batch
 julia --threads=1 --project=. src/run.jl --batch batchs/campinas-sparse-unitary-profits/brkga.batch
-
-# Carlos Path / Walk-CBRP / BRKGA
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_mtz.batch
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_cut.batch
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/path_cbrp_lazy.batch
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_lazy.batch
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_cut.batch
-julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/walk_cbrp_vi.batch
 julia --threads=1 --project=. src/run.jl --batch batchs/carlos/notified-alto-santo/brkga.batch
 ```
+
+Summaries: `grep -A1 '^instance,' logs/path_*.log` / `logs/walk_*.log`.
 
 **Street digraph simplification** (`--simplify-street-graph`): OSMnx-style topological contraction of interstitial (mostly degree-2) corridors on the **sparse** street digraph before Path (or `--nosolve`). Requires `--no-cbrp-metric-closure`. Depot and every block-member node are forced endpoints so block lists and Path service vertices are preserved; contracted corridor length is the sum of segment lengths. Carlos AS/LN files were typically generated with Python OSMnx `simplify_graph` already, so the flag mainly helps Campinas Matheus Path. Logs `|V|` / `|A|` before → after.
 
@@ -527,4 +518,4 @@ instance,|V|,|A|,|B|,T,model,initialLP,yLP,yLPTime,lazyCuts,cost,solverTime,rela
 5,50,2450,5,120.0,IP,25.0,25.0,0.364455516,0,25.00,0.078959983,0.0,0,5433.0,15.903000000000002,1723.0,5,0.015641141,0,0
 ```
 
-For replicating all the paper experiments, simply run the bash script `sh.sh`.
+For replicating paper Path/Walk campaigns, use the twelve `run_{campinas,carlos}_{path,walk}_*.sh` wrappers above (shared engine: `scripts/run_paper_batches.sh`). The old all-in-one `sh.sh` lives under `scripts/legacy/`.
