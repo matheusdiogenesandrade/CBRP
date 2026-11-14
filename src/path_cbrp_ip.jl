@@ -2,8 +2,7 @@ using Logging
 using Printf
 
 """
-Arc-indexed Path-CBRP MILP on a sparse Carlos digraph: compact arc MTZ (`w` per arc) plus global time budget.
-Mirrors the C++ `PathCBRPIP` formulation in the parent COPAlgorithms repository (`src/directed/path_cbrp_model.cpp`).
+Arc-indexed Path-CBRP MILP on a sparse digraph: compact arc MTZ (`w` per arc) plus global time budget.
 """
 function runPathCbrpMipModel(data::SBRPData, app::Dict{String,Any})::Tuple{SBRPSolution,Dict{String,String}}
 

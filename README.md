@@ -10,46 +10,11 @@ export JULIA_COPY_STACKS=1
 # export JULIA_THREADS=1
 ```
 
-## Docker IP with CPLEX
-
-Self-contained **builder + runner** for this repo (no dependency on a parent COPAlgorithms tree). From **this directory** (repository root):
-
-```bash
-export CPLEX_HOST_PATH="/path/to/CPLEX_Studio2211"   # host Studio install; optional if already at default path
-docker compose -f docker-compose.ip.yml build
-docker compose -f docker-compose.ip.yml run --rm cbrp-original-ip-builder
-docker compose -f docker-compose.ip.yml run --rm cbrp-original-ip-runner
-```
-
-| Variable | Default | Role |
-|----------|---------|------|
-| `IP_ARTIFACTS_DIR` | `./build/ip-artifacts` | Host folder mounted at `/artifacts` (staging writes `cbrp-original-ip/CBRP_original` and `.julia` here). |
-| `CPLEX_HOST_PATH` | `/opt/ibm/ILOG/CPLEX_Studio2211` | Host CPLEX Studio root for the bind mount. |
-| `CPLEX_ROOT_DIR` | `/opt/ibm/ILOG/CPLEX_Studio2211` | Mount point inside the container (must match `CPLEX_ROOT_DIR` passed to the staging script). |
-
-Images: `cbrp-original-ip-builder:latest`, `cbrp-original-ip-runner:latest`. Dockerfiles: [`docker/Dockerfile.ip-builder`](docker/Dockerfile.ip-builder), [`docker/Dockerfile.ip-runner`](docker/Dockerfile.ip-runner). Staging: [`scripts/stage_ip_artifacts.sh`](scripts/stage_ip_artifacts.sh).
-
-Inside the runner, `WORKDIR` is the staged Julia project. Example solves (same as below):
-
-```bash
-julia --threads=1 --project=. src/run.jl data/campinas-sparse/1.sbrp --out solutions/complete_smoke --intersection-cuts --ip
-```
-
-**Sparse digraph + Path-CBRP MILP:** use `--ip`, `--no-cbrp-metric-closure`, and `--path-cbrp-mip`. That keeps the street digraph (no Floyd–Warshall metric closure) and runs the arc-indexed Path-CBRP model with a global travel + service time bound and compact arc MTZ. Works for **Campinas (Matheus)** (default `--instance-type matheus`) and **Carlos** (`--instance-type carlos`). Do not combine `--path-cbrp-mip` with `--brkga`. CPLEX time cap for the Path MILP: `--time-limit` (seconds; `0` defaults to 3600).
-
-Campinas Path batches (legacy / exploratory under `batchs/campinas-*`; paper Path uses the SIMP triad below):
-
-| Batch | Flags | Notes |
-|-------|--------|--------|
-| `path_cbrp_no_warm.batch` | Path, no simplify, default SEC **root** | Baseline sparse Path |
-| `path_cbrp_simp_callback.batch` | Path + `--simplify-street-graph` + SEC **callback** | Legacy simp+callback; moved runner under `scripts/legacy/` |
-| `path_cbrp_{mtz,cut,lazy}_simp.batch` | Path + `--simplify-street-graph` + MTZ / Cut / Lazy | Paper Path-CBRP (SIMP) campaign (8 groups); runners `run_campinas_path_{mtz,cut,lazy}.sh` |
-
-Prefer **callback** over **root** when using street-graph simplification: the root LP cut loop can fail to terminate on some simplified Campinas instances. Paper runners honor `JULIA_BIN` (default `julia` on PATH) and `JULIA_THREADS` (default 1).
-
 ## Paper experiments
 
 The paper reports Path / Complete / BRKGA campaigns for Campinas and Carlos. Path and Complete each have corpus-specific variant batches under **Real-World (Carlos)** and **Synthetic (Matheus)**. Example Campinas folder: `batchs/campinas-sparse-unitary-profits/`.
+
+Path runs use `--ip --no-cbrp-metric-closure --path-cbrp-mip` (sparse street digraph; no Floyd–Warshall metric closure; do not combine with `--brkga`). Prefer **callback** over **root** SEC when using `--simplify-street-graph` (the root LP cut loop can fail to terminate on some simplified Campinas instances).
 
 | Method | Campinas batch | Carlos batch | Setting |
 |--------|----------------|--------------|---------|
@@ -97,6 +62,82 @@ Paper batches under each of the eight `batchs/campinas-*` groups. Path-CBRP diff
 | **Walk-CBRP-Cut** | `walk_cbrp_cut.batch` | `--no-complete-mtz` + callback `--complete-sec-mode both` + `--sec-user-cut-max-depth 0` (no intersection cuts) |
 | **Walk-CBRP-VI** | `walk_cbrp_vi.batch` | MTZ on + `--intersection-cuts` + callback `--complete-sec-mode user` + `--sec-user-cut-max-depth 0` (user SECs at root only; no lazy context) |
 | **BRKGA** | `brkga.batch` | `--brkga` |
+
+### BRKGA time-budget sweep
+
+Script: [`experiments/brkga_time_sweep.jl`](experiments/brkga_time_sweep.jl).
+
+Repeatedly runs `runCOPBRKGAModel` on one **Carlos** instance with **metric closure** (Carlos reader default; not Path-CBRP sparse), while increasing the vehicle budget `data.T` (minutes). Stops when all positive-profit blocks are serviced, an exception occurs, or a cap is hit. Does **not** go through `src/run.jl` or append to `logs/log`; results go only to `--out-csv`.
+
+**Stop criteria** (written in the CSV `terminal` column):
+
+| `terminal` | Meaning |
+|------------|---------|
+| `all_positive_profit_blocks` | `num_serviced_blocks >= num_positive_profit_blocks` (success) |
+| `max_T` | Next step would exceed `--max-T` |
+| `max_iterations` | Hit `--max-iterations` |
+| `error` | Exception from `runCOPBRKGAModel` (`error_message` filled) |
+
+**Flags:**
+
+| Flag | Default | Role |
+|------|---------|------|
+| `instance` (positional) | required | Carlos `.txt` path |
+| `--brkga-conf` | required | BRKGA wrapper `.conf` (same role as `src/run.jl --brkga-conf`) |
+| `--out-csv` | required | Output CSV path (header + one row per solve) |
+| `--min-T` | `10` | First budget \(T\) in minutes |
+| `--time-step` | `5` | Increase \(T\) by this many minutes each iteration |
+| `--max-T` | `400` | Inclusive upper cap on \(T\) (minutes) |
+| `--max-iterations` | `100` | Maximum number of BRKGA solves |
+| `--time-limit` | `"0"` | Wall seconds per BRKGA solve; `0` → use `maximum_time` from `--brkga-conf` |
+| `--drop-zero-profit-blocks` | off | Drop profit-0 blocks before the sweep (same as `src/run.jl`) |
+
+**CSV columns** (same layout as `experiments/complete_digraph_time_sweep.jl` for comparison; IP-only fields stay empty for BRKGA unless the solver fills them):
+
+`iteration`, `budget_T`, `num_blocks`, `num_positive_profit_blocks`, `num_serviced_blocks`, `terminal`, `cost`, `solverTime`, `relativeGAP`, `nodeCount`, `yLPTime`, `maxFlowCutsTime`, `maxFlowCuts`, `intersectionCutsTime`, `phase1Time`, `noFeasibleSolution`, `error_message`.
+
+Example (from this directory):
+
+```sh
+julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --brkga-conf conf/config.conf \
+  --out-csv /tmp/brkga_sweep.csv \
+  --min-T 10 --time-step 5 --max-T 400 --max-iterations 100
+```
+
+Optional per-solve wall cap and zero-profit drop:
+
+```sh
+julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --brkga-conf conf/config.conf \
+  --out-csv /tmp/brkga_sweep.csv \
+  --min-T 10 --time-step 5 --max-T 400 --time-limit 900 \
+  --drop-zero-profit-blocks
+```
+
+## Auxiliary experiments
+
+Scripts under `experiments/` that are useful for analysis but are **not** part of the paper Path/Walk/BRKGA batch campaigns.
+
+### Path-CBRP time-budget sweep
+
+Script: [`experiments/path_cbrp_time_sweep.jl`](experiments/path_cbrp_time_sweep.jl).
+
+Repeatedly solves the Path-CBRP MILP on the same Carlos sparse instance while increasing `data.T` (minutes) from `--min-T` by `--time-step` until `num_serviced_blocks >= num_positive_profit_blocks` (blocks with total profit &gt; 0 from the Carlos reader; zero-profit blocks are never chosen in the max-profit MILP), CPLEX throws, or caps `--max-T` (default 400) / `--max-iterations` (default 100) apply. The CSV includes `num_positive_profit_blocks`; success terminal is `all_positive_profit_blocks`. One CSV row per solve (`--out-csv` required). CPLEX per-solve wall cap: `--time-limit` (seconds; `0` → 3600). This script does not use `src/run.jl` or `logs/log`.
+
+```sh
+julia --threads=1 --project=. experiments/path_cbrp_time_sweep.jl \
+  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
+  --out-csv /tmp/path_sweep.csv --min-T 10 --time-step 5 --max-T 400 --max-iterations 100 --time-limit 30
+```
+
+## CLI and model options
+
+Shared Path/Complete flags, warm start, CLI help, and single-instance / batch examples.
+
+### Paper runners and smoke examples
 
 Examples (from this directory):
 
@@ -235,67 +276,7 @@ Use the **same** `INSTANCE.txt`, `--vehicle-time-limit`, and `--drop-zero-profit
 
 **Tests:** from this directory: `julia --project=. -e 'using Test; include("test/runtests.jl")'` (CPLEX Path-CBRP smoke may skip if CPLEX fails).
 
-**Path-CBRP time-budget sweep (experiment):** repeatedly solves the Path-CBRP MILP on the same Carlos sparse instance while increasing `data.T` (minutes) from `--min-T` by `--time-step` until `num_serviced_blocks >= num_positive_profit_blocks` (blocks with total profit &gt; 0 from the Carlos reader; zero-profit blocks are never chosen in the max-profit MILP), CPLEX throws, or caps `--max-T` (default 400) / `--max-iterations` (default 100) apply. The CSV includes `num_positive_profit_blocks`; success terminal is `all_positive_profit_blocks`. One CSV row per solve (`--out-csv` required). CPLEX per-solve wall cap: `--time-limit` (seconds; `0` → 3600). This script does not use `src/run.jl` or `logs/log`.
-
-```sh
-julia --threads=1 --project=. experiments/path_cbrp_time_sweep.jl \
-  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
-  --out-csv /tmp/path_sweep.csv --min-T 10 --time-step 5 --max-T 400 --max-iterations 100 --time-limit 30
-```
-
-### BRKGA time-budget sweep
-
-Script: [`experiments/brkga_time_sweep.jl`](experiments/brkga_time_sweep.jl).
-
-Repeatedly runs `runCOPBRKGAModel` on one **Carlos** instance with **metric closure** (Carlos reader default; not Path-CBRP sparse), while increasing the vehicle budget `data.T` (minutes). Stops when all positive-profit blocks are serviced, an exception occurs, or a cap is hit. Does **not** go through `src/run.jl` or append to `logs/log`; results go only to `--out-csv`.
-
-**Stop criteria** (written in the CSV `terminal` column):
-
-| `terminal` | Meaning |
-|------------|---------|
-| `all_positive_profit_blocks` | `num_serviced_blocks >= num_positive_profit_blocks` (success) |
-| `max_T` | Next step would exceed `--max-T` |
-| `max_iterations` | Hit `--max-iterations` |
-| `error` | Exception from `runCOPBRKGAModel` (`error_message` filled) |
-
-**Flags:**
-
-| Flag | Default | Role |
-|------|---------|------|
-| `instance` (positional) | required | Carlos `.txt` path |
-| `--brkga-conf` | required | BRKGA wrapper `.conf` (same role as `src/run.jl --brkga-conf`) |
-| `--out-csv` | required | Output CSV path (header + one row per solve) |
-| `--min-T` | `10` | First budget \(T\) in minutes |
-| `--time-step` | `5` | Increase \(T\) by this many minutes each iteration |
-| `--max-T` | `400` | Inclusive upper cap on \(T\) (minutes) |
-| `--max-iterations` | `100` | Maximum number of BRKGA solves |
-| `--time-limit` | `"0"` | Wall seconds per BRKGA solve; `0` → use `maximum_time` from `--brkga-conf` |
-| `--drop-zero-profit-blocks` | off | Drop profit-0 blocks before the sweep (same as `src/run.jl`) |
-
-**CSV columns** (same layout as `experiments/complete_digraph_time_sweep.jl` for comparison; IP-only fields stay empty for BRKGA unless the solver fills them):
-
-`iteration`, `budget_T`, `num_blocks`, `num_positive_profit_blocks`, `num_serviced_blocks`, `terminal`, `cost`, `solverTime`, `relativeGAP`, `nodeCount`, `yLPTime`, `maxFlowCutsTime`, `maxFlowCuts`, `intersectionCutsTime`, `phase1Time`, `noFeasibleSolution`, `error_message`.
-
-Example (from this directory):
-
-```sh
-julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
-  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
-  --brkga-conf conf/config.conf \
-  --out-csv /tmp/brkga_sweep.csv \
-  --min-T 10 --time-step 5 --max-T 400 --max-iterations 100
-```
-
-Optional per-solve wall cap and zero-profit drop:
-
-```sh
-julia --threads=1 --project=. experiments/brkga_time_sweep.jl \
-  data/carlos/notified-alto-santo/notified-alto-santo-1000-2021.txt \
-  --brkga-conf conf/config.conf \
-  --out-csv /tmp/brkga_sweep.csv \
-  --min-T 10 --time-step 5 --max-T 400 --time-limit 900 \
-  --drop-zero-profit-blocks
-```
+### CLI help and basic runs
 
 You can get the parameters list by typing:
 
